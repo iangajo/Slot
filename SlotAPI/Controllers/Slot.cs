@@ -217,7 +217,7 @@ namespace SlotAPI.Controllers
                 reelResultPositions.Add(new ReelResult()
                 {
                     Position = (position > MaxLine) ? (position - MaxLine) : position,
-                    Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (MaxLine - position) + 1 : position)).Symbol
+                    Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Symbol
                 });
 
                 position += 1;
@@ -225,7 +225,7 @@ namespace SlotAPI.Controllers
                 reelResultPositions.Add(new ReelResult()
                 {
                     Position = (position > MaxLine) ? (position - MaxLine) : position,
-                    Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (MaxLine - position) + 1 : position)).Symbol
+                    Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Symbol
                 });
             }
             else
