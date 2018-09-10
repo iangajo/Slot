@@ -243,7 +243,7 @@ namespace SlotAPI.Controllers
                 reelResultPositions.Add(new ReelResult()
                 {
                     Position = reelNumber + MaxReel + MaxReel,
-                    Symbol = reelStrips.First(r => r.Id == spinResult + MaxReel).Symbol
+                    Symbol = reelStrips.First(r => r.Id == spinResult + MaxReel + MaxReel).Symbol
                 });
             }
 
