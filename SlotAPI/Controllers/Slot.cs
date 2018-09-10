@@ -190,7 +190,7 @@ namespace SlotAPI.Controllers
         private int RandomPick()
         {
             var random = new Random();
-            return random.Next(1, MaxReel);
+            return random.Next(1, MaxLine);
         }
 
         private List<ReelResult> DoSpinPerReel(int reelNumber)
@@ -216,7 +216,7 @@ namespace SlotAPI.Controllers
 
                 reelResultPositions.Add(new ReelResult()
                 {
-                    Position = (position > MaxLine) ? (MaxLine - position) + 1 : position,
+                    Position = (position > MaxLine) ? (position - MaxLine) : position,
                     Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (MaxLine - position) + 1 : position)).Symbol
                 });
 
@@ -224,7 +224,7 @@ namespace SlotAPI.Controllers
 
                 reelResultPositions.Add(new ReelResult()
                 {
-                    Position = (position > MaxLine) ? (MaxLine - position) + 1 : position,
+                    Position = (position > MaxLine) ? (position - MaxLine) : position,
                     Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (MaxLine - position) + 1 : position)).Symbol
                 });
             }
