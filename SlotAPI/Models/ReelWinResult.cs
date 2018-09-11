@@ -9,6 +9,7 @@ namespace SlotAPI.Models
     {
         public int ReelNumber { get; set; }
         public int Order { get; set; }
+        public int Position { get; set; }
         public string Symbol { get; set; }
         public int WinCombination { get; set; }
     }

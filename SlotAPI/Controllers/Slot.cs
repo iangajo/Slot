@@ -28,12 +28,12 @@ namespace SlotAPI.Controllers
         [Route("api/spin")]
         public ActionResult Spin()
         {
-            var result = new List<ReelResult>();
+            var reelResults = new List<ReelResult>();
 
             for (var i = 1; i < MaxReel + 1; i++)
             {
                 var r = DoSpinPerReel(i);
-                result.AddRange(r);
+                reelResults.AddRange(r);
 
             }
 
@@ -41,9 +41,10 @@ namespace SlotAPI.Controllers
 
             var gameId = Guid.NewGuid().ToString();
             var isCascade = false;
+
             while (stillWinning)
             {
-                var winResults = CheckIfThereMatch(result, 10, gameId, isCascade);
+                var winResults = CheckIfThereMatch(reelResults, 10, gameId, isCascade);
 
                 if (!winResults.Any())
                 {
@@ -53,63 +54,116 @@ namespace SlotAPI.Controllers
 
                 isCascade = true;
 
-                for (var i = 1; i < (MaxReel + 1); i++)
+                for (var reelNumber = 1; reelNumber < (MaxReel + 1); reelNumber++)
                 {
-                    var reelResults = winResults.Where(w => w.ReelNumber == i);
+                    var number = reelNumber;
+                    var winnerReelSymbol = winResults.Where(w => w.ReelNumber == number).ToList();
 
-                    var line1 = reelResults.First().Order - 3;
-                    var line2 = line1 + 1;
-                    var line3 = line1 + 2;
+                    reelResults.RemoveAll(r => winnerReelSymbol.Select(w => w.Order).Contains(r.Order));
 
-                    if (line1 <= 0)
+                    //Get remaining symbol per reel
+                    var remainingSymbol = reelResults.Where(r => r.ReelNumber == number).ToList();
+
+                    var remainingSymbolCount = remainingSymbol.Count();
+
+                    //Move down the remaining reel symbol
+                    bool hasLastItem = false;
+                    if (remainingSymbol.Any())
                     {
-                        line1 = (25 + line1);
-                        line2 = (line1 + 1) > MaxLine ? ((line1 + 1) - MaxLine) : (line1 + 1);
-                        line3 = (line1 + 2) > MaxLine ? ((line1 + 2) - MaxLine) : (line1 + 2);
+                        
+                        foreach (var item in remainingSymbol.OrderByDescending(r => r.Position))
+                        {
+                            var movePosition = item.Position;
+
+                            if (remainingSymbolCount == 1 && item.Position < 6)
+                            {
+                                movePosition += 10;
+                            }
+                            else if (remainingSymbolCount == 1 && item.Position > 5 && item.Position < 11)
+                            {
+                                movePosition += 5;
+                            }
+                            else if (remainingSymbolCount > 1 && item.Position > 10)
+                            {
+                                hasLastItem = true;
+                            }
+                            else if (remainingSymbolCount > 1 && item.Position < 6)
+                            {
+                                if (hasLastItem)
+                                    movePosition += 5;
+                                else
+                                    movePosition += 10;
+
+                            }
+                            else if (remainingSymbolCount > 1 && item.Position > 5 && item.Position < 11)
+                            {
+                                if (!hasLastItem)
+                                    movePosition += 5;
+                            }
+                           
+                            if (!hasLastItem)
+                            {
+                                reelResults.First(r => r.ReelNumber == number
+                                                       && r.Symbol == item.Symbol
+                                                       && r.Order == item.Order
+                                                       && r.Position == item.Position).Position = movePosition;
+                            }
+
+                        }
                     }
 
-                    //remove all the reelNumber
-                    result.RemoveAll(r => r.ReelNumber == i);
+                    var reel = GetReelStrips(number);
 
-                    //Get reelStrips
-                    var reelStrips = GetReelStrips(i);
+                    if (remainingSymbolCount > 0)
+                        reel.RemoveAll(r => winnerReelSymbol.Select(w => w.Order).Contains(r.Id));
 
-                    //cascade
-                    var addToResults = new List<ReelResult>()
+                    var numberOfSymbolsToCascade = (3 - remainingSymbolCount);
+
+                    int minimumOrder = 0;
+                    int minimumPosition = 0;
+
+                    if (numberOfSymbolsToCascade < 3)
                     {
-                        new ReelResult()
+                        minimumOrder = remainingSymbol.OrderBy(r => r.Order).First(r => r.ReelNumber == number).Order;
+                        
+                    }
+                    else
+                    {
+                        minimumOrder = winnerReelSymbol.OrderBy(r => r.Order).First(r => r.ReelNumber == number).Order;
+                        
+                    }
+
+                    var order = (minimumOrder - 1);
+
+                    var counter = 0;
+
+                    while (counter != numberOfSymbolsToCascade)
+                    {
+
+                        if (order <= 0)
+                            order = 25;
+
+                        if (reel.Any(r => r.Id == order))
                         {
-                            ReelNumber = i,
-                            Position = i,
-                            Symbol = reelStrips.First(r => r.Id == line1).Symbol,
-                            Order = reelStrips.First(r => r.Id == line1).Id
-                        },
+                            counter += 1;
+                            var x = reel.First(r => r.Id == order);
 
-                        new ReelResult()
-                        {
-                            ReelNumber = i,
-                            Position = i + 5,
-                            Symbol = reelStrips.First(r => r.Id == line2).Symbol,
-                            Order = reelStrips.First(r => r.Id == line2).Id
-                        },
+                            reelResults.Add(new ReelResult()
+                            {
+                                ReelNumber = number,
+                                Order = x.Id,
+                                Symbol = x.Symbol,
+                                Position = counter * 5
+                            });
+                            
+                        }
 
-                        new ReelResult()
-                        {
-                            ReelNumber = i,
-                            Position = i + 10,
-                            Symbol = reelStrips.First(r => r.Id == line3).Symbol,
-                            Order = reelStrips.First(r => r.Id == line3).Id
-                        },
-                    };
-
-                    result.AddRange(addToResults);
-
+                        order -= 1;
+                    }
                 }
             }
 
             var orderByDescending = _applicationDbContext.TransactionHistory.Where(t => t.PlayerId == 123).OrderByDescending(t => t.Id).First().Transaction;
-            
-            //var winAmount = CheckIfPlayerWin(result, 10);
 
             return Ok(orderByDescending);
         }
@@ -306,7 +360,7 @@ namespace SlotAPI.Controllers
                     Position = reelNumber + 5,
                     Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Symbol,
                     Order = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Id
-                    
+
                 });
 
                 position += 1;
@@ -352,7 +406,8 @@ namespace SlotAPI.Controllers
         private List<ReelWinResult> CheckIfThereMatch(List<ReelResult> spinResult, decimal bet, string gameId, bool isCascade)
         {
             var response = new List<ReelWinResult>();
-            
+            var tempReelWinResults = new List<ReelWinResult>();
+
             for (var i = 1; i < WinCombinations; i++)
             {
                 var winningCombinations = GetWinningCombinations(i);
@@ -376,19 +431,22 @@ namespace SlotAPI.Controllers
                         {
                             break;
                         }
+
+                        tempReelWinResults.Add(new ReelWinResult()
+                        {
+                            Symbol = item.Symbol,
+                            Order = item.Order,
+                            Position = item.Position,
+                            ReelNumber = item.ReelNumber,
+                            WinCombination = i
+                        });
                     }
 
                     if (match > 2)
                     {
                         var winAmount = GetWin(symbol, match, bet);
 
-                        response.Add(new ReelWinResult()
-                        {
-                            Symbol = symbol,
-                            ReelNumber = result.First().ReelNumber,
-                            Order = result.First().Order,
-                            WinCombination = i
-                        });
+                        response.AddRange(tempReelWinResults);
 
                         _applicationDbContext.TransactionHistory.Add(new TransactionHistory()
                         {
@@ -399,12 +457,14 @@ namespace SlotAPI.Controllers
                         });
 
                         _applicationDbContext.SaveChanges();
-                       
+
                     }
-                } 
+
+                    tempReelWinResults.Clear();
+                }
             }
 
-            if (!isCascade)
+            if (!response.Any() && !isCascade)
             {
                 _applicationDbContext.TransactionHistory.Add(new TransactionHistory()
                 {
@@ -417,7 +477,7 @@ namespace SlotAPI.Controllers
                 _applicationDbContext.SaveChanges();
             }
 
-            return new List<ReelWinResult>();
+            return response;
         }
 
         private int[] GetWinningCombinations(int winningCombination)
