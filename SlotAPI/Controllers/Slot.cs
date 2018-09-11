@@ -21,6 +21,7 @@ namespace SlotAPI.Controllers
         public Slot(ApplicationDbContext applicationDbContext)
         {
             _applicationDbContext = applicationDbContext;
+            _applicationDbContext.Database.EnsureCreated();
         }
 
         [HttpPost]
@@ -39,10 +40,10 @@ namespace SlotAPI.Controllers
             var stillWinning = true;
 
             var gameId = Guid.NewGuid().ToString();
-
+            var isCascade = false;
             while (stillWinning)
             {
-                var winResults = CheckIfThereMatch(result, 10, gameId, out var match);
+                var winResults = CheckIfThereMatch(result, 10, gameId, isCascade);
 
                 if (!winResults.Any())
                 {
@@ -50,7 +51,9 @@ namespace SlotAPI.Controllers
                     break;
                 }
 
-                for (var i = 1; i < (match + 1); i++)
+                isCascade = true;
+
+                for (var i = 1; i < (MaxReel + 1); i++)
                 {
                     var reelResults = winResults.Where(w => w.ReelNumber == i);
 
@@ -104,11 +107,11 @@ namespace SlotAPI.Controllers
                 }
             }
 
-
-
+            var orderByDescending = _applicationDbContext.TransactionHistory.Where(t => t.PlayerId == 123).OrderByDescending(t => t.Id).First().Transaction;
+            
             //var winAmount = CheckIfPlayerWin(result, 10);
 
-            return Ok();
+            return Ok(orderByDescending);
         }
 
 
@@ -346,9 +349,10 @@ namespace SlotAPI.Controllers
             return reelResultPositions;
         }
 
-        private List<ReelResult> CheckIfThereMatch(List<ReelResult> spinResult, decimal bet, string gameId, out int matchResult)
+        private List<ReelWinResult> CheckIfThereMatch(List<ReelResult> spinResult, decimal bet, string gameId, bool isCascade)
         {
-            matchResult = 0;
+            var response = new List<ReelWinResult>();
+            
             for (var i = 1; i < WinCombinations; i++)
             {
                 var winningCombinations = GetWinningCombinations(i);
@@ -358,7 +362,6 @@ namespace SlotAPI.Controllers
                 foreach (var symbol in _symbols)
                 {
                     var match = 0;
-
                     foreach (var item in result)
                     {
                         if (item.Symbol == symbol)
@@ -377,34 +380,44 @@ namespace SlotAPI.Controllers
 
                     if (match > 2)
                     {
-                        matchResult = match;
                         var winAmount = GetWin(symbol, match, bet);
-                        //TODO
+
+                        response.Add(new ReelWinResult()
+                        {
+                            Symbol = symbol,
+                            ReelNumber = result.First().ReelNumber,
+                            Order = result.First().Order,
+                            WinCombination = i
+                        });
 
                         _applicationDbContext.TransactionHistory.Add(new TransactionHistory()
                         {
                             Amount = winAmount,
                             PlayerId = 123,
-                            Transaction = "Win"
+                            Transaction = "Win",
+                            GameId = gameId
                         });
 
                         _applicationDbContext.SaveChanges();
-                        //Save game Id and winAmount
-                        return result;
+                       
                     }
                 } 
             }
 
-            _applicationDbContext.TransactionHistory.Add(new TransactionHistory()
+            if (!isCascade)
             {
-                Amount = 0,
-                PlayerId = 123,
-                Transaction = "Lose"
-            });
+                _applicationDbContext.TransactionHistory.Add(new TransactionHistory()
+                {
+                    Amount = 0,
+                    PlayerId = 123,
+                    Transaction = "Lose",
+                    GameId = gameId
+                });
 
-            _applicationDbContext.SaveChanges();
+                _applicationDbContext.SaveChanges();
+            }
 
-            return new List<ReelResult>();
+            return new List<ReelWinResult>();
         }
 
         private int[] GetWinningCombinations(int winningCombination)
