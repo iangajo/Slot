@@ -66,7 +66,7 @@ namespace SlotAPI.Controllers
             }
 
             var tokenRequest = Request.Headers["Authorization"].ToString();
-            var currentToken = _account.GetToken(spinRequest.PlayerId);
+            var currentToken = $"Bearer{_account.GetToken(spinRequest.PlayerId)}";
 
             if (tokenRequest != currentToken)
             {
@@ -97,5 +97,27 @@ namespace SlotAPI.Controllers
 
             return Ok(response);
         }
+
+        [HttpGet]
+        [Route("api/getstate/{playerId}")]
+        public ActionResult GetPlayerState(int playerId)
+        {
+            var transaction = string.Empty;
+            decimal balance = -1;
+
+            transaction = _transaction.GetLastTransactionHistoryByPlayer(playerId).Transaction;
+            balance = _account.GetBalance(playerId);
+
+            var response = new SpinResponse()
+            {
+                ErrorMessage = string.Empty,
+                Balance = balance,
+                Transaction = transaction,
+                Success = !string.IsNullOrEmpty(transaction)
+            };
+
+            return Ok(response);
+        }
+
     }
 }

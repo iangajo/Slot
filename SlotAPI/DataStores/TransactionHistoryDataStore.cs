@@ -32,8 +32,21 @@ namespace SlotAPI.DataStores
 
         public TransactionHistory GetLastTransactionHistoryByPlayer(int playerId)
         {
-            return _applicationDbContext.TransactionHistory.Where(t => t.PlayerId == playerId)
-                .OrderByDescending(t => t.Id).First();
+            if (_applicationDbContext.TransactionHistory.Any(t => t.PlayerId == playerId))
+            {
+                return _applicationDbContext.TransactionHistory.Where(t => t.PlayerId == playerId)
+                    .OrderByDescending(t => t.Id).First();
+            }
+
+            return new TransactionHistory()
+            {
+                Amount = 0.00m,
+                GameId = string.Empty,
+                PlayerId = 0,
+                Transaction = string.Empty,
+                WinningCombination = string.Empty,
+                WinningLine = 0
+            };
         }
     }
 }
