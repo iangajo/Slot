@@ -9,10 +9,13 @@ namespace SlotAPI.Domains.Impl
 {
     public class Account : IAccount
     {
-        private readonly IAccountDetails _accountDetails;
-        public Account(IAccountDetails accountDetails)
+        private readonly IAccountDetailsDataStore _accountDetails;
+        private readonly IAccountCreditsDataStore _accountCredits;
+
+        public Account(IAccountDetailsDataStore accountDetails, IAccountCreditsDataStore accountCredits)
         {
             _accountDetails = accountDetails;
+            _accountCredits = accountCredits;
         }
 
         public AuthResponse GenerateToken(int playerId)
@@ -27,9 +30,9 @@ namespace SlotAPI.Domains.Impl
             };
         }
 
-        public BaseResponse Register(string username, string password)
+        public RegistrationResponse Register(string username, string password)
         {
-            var response = new BaseResponse()
+            var response = new RegistrationResponse()
             {
                 Success = true,
                 ErrorMessage = string.Empty
@@ -37,7 +40,9 @@ namespace SlotAPI.Domains.Impl
 
             try
             {
-                var result = _accountDetails.Registration(username, password);
+                var playerId = _accountDetails.Registration(username, password);
+                response.PlayerId = playerId;
+
             }
             catch (Exception e)
             {
@@ -47,6 +52,16 @@ namespace SlotAPI.Domains.Impl
 
             return response;
 
+        }
+
+        public decimal GetBalance(int playerId)
+        {
+           return _accountCredits.GetBalance(playerId);
+        }
+
+        public string GetToken(int playerId)
+        {
+           return _accountDetails.GetToken(playerId);
         }
     }
 }

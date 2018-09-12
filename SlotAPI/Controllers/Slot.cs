@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using SlotAPI.DataStore;
 using SlotAPI.Domains;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using SlotAPI.DataStores;
 using SlotAPI.Models;
 
 namespace SlotAPI.Controllers
@@ -15,17 +13,15 @@ namespace SlotAPI.Controllers
         private readonly ApplicationDbContext _applicationDbContext;
         private readonly IReel _reel;
         private readonly IGame _game;
-        private readonly IAccountCredits _accountCredits;
-        private readonly ITransactionHistory _transactionHistory;
+        private readonly ITransaction _transaction;
         private readonly IAccount _account;
 
-        public Slot(ApplicationDbContext applicationDbContext, IReel reel, IGame game, IAccountCredits accountCredits, ITransactionHistory transactionHistory, IAccount account)
+        public Slot(ApplicationDbContext applicationDbContext, IReel reel, IGame game, ITransaction transaction, IAccount account)
         {
             _applicationDbContext = applicationDbContext;
             _reel = reel;
             _game = game;
-            _accountCredits = accountCredits;
-            _transactionHistory = transactionHistory;
+            _transaction = transaction;
             _account = account;
             _applicationDbContext.Database.EnsureCreated();
 
@@ -40,9 +36,8 @@ namespace SlotAPI.Controllers
                 return BadRequest();
             }
 
-           var response = _account.Register(registration.Username, registration.Password);
+            var response = _account.Register(registration.Username, registration.Password);
 
-           
             return Ok(response);
         }
 
@@ -70,6 +65,14 @@ namespace SlotAPI.Controllers
                 return BadRequest();
             }
 
+            var tokenRequest = Request.Headers["Authorization"].ToString();
+            var currentToken = _account.GetToken(spinRequest.PlayerId);
+
+            if (tokenRequest != currentToken)
+            {
+                return Unauthorized();
+            }
+
             var reelResults = _game.Spin();
 
             var gameId = _game.GenerateGameId();
@@ -81,8 +84,8 @@ namespace SlotAPI.Controllers
 
             if (string.IsNullOrEmpty(errorMessage.ErrorMessage))
             {
-                transaction = _transactionHistory.GetLastTransactionHistoryByPlayer(spinRequest.PlayerId).Transaction;
-                balance = _accountCredits.GetBalance(spinRequest.PlayerId);
+                transaction = _transaction.GetLastTransactionHistoryByPlayer(spinRequest.PlayerId).Transaction;
+                balance = _account.GetBalance(spinRequest.PlayerId);
             }
 
             var response = new SpinResponse()

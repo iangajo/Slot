@@ -6,7 +6,7 @@ using SlotAPI.Models;
 
 namespace SlotAPI.DataStores
 {
-    public interface IAccountCredits
+    public interface IAccountCreditsDataStore
     {
         BaseResponse Credit(int playerId, decimal amount);
 

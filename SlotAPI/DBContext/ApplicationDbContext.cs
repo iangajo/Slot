@@ -17,5 +17,10 @@ namespace SlotAPI.DataStore
         {
             
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Account>().HasIndex(a => a.Username).IsUnique();
+        }
     }
 }

@@ -10,6 +10,10 @@ namespace SlotAPI.Domains
     {
         AuthResponse GenerateToken(int playerId);
 
-        BaseResponse Register(string username, string password);
+        RegistrationResponse Register(string username, string password);
+
+        decimal GetBalance(int playerId);
+
+        string GetToken(int playerId);
     }
 }

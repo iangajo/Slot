@@ -13,10 +13,10 @@ namespace SlotAPI.Domains.Impl
         private const int WinCombinations = 30;
         private readonly string[] _symbols = { "S7", "S6", "S5", "S4", "S3", "S2", "S1", "S0" };
 
-        private readonly ITransactionHistory _transactionHistory;
+        private readonly ITransactionHistoryDataStore _transactionHistory;
         private readonly IReel _reel;
-        private readonly IAccountCredits _accountCredits;
-        public Game(IReel reel, ITransactionHistory transactionHistory, IAccountCredits accountCredits)
+        private readonly IAccountCreditsDataStore _accountCredits;
+        public Game(IReel reel, ITransactionHistoryDataStore transactionHistory, IAccountCreditsDataStore accountCredits)
         {
             _reel = reel;
             _transactionHistory = transactionHistory;
@@ -59,7 +59,7 @@ namespace SlotAPI.Domains.Impl
 
                 while (stillWinning)
                 {
-                    var winResults = CheckIfThereMatch(spinResults, 10, GenerateGameId(), isCascade, playerId);
+                    var winResults = CheckIfThereMatch(spinResults, bet, GenerateGameId(), isCascade, playerId);
 
                     if (!winResults.Any())
                     {

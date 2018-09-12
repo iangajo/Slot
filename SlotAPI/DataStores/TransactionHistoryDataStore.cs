@@ -7,10 +7,10 @@ using SlotAPI.Models;
 
 namespace SlotAPI.DataStores
 {
-    public class Transaction : ITransactionHistory
+    public class TransactionHistoryDataStore : ITransactionHistoryDataStore
     {
         private readonly ApplicationDbContext _applicationDbContext;
-        public Transaction(ApplicationDbContext applicationDbContext)
+        public TransactionHistoryDataStore(ApplicationDbContext applicationDbContext)
         {
             _applicationDbContext = applicationDbContext;
         }

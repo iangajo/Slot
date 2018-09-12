@@ -8,11 +8,11 @@ using SlotAPI.Models;
 
 namespace SlotAPI.DataStores
 {
-    public class AccountWallet : IAccountCredits
+    public class AccountWalletDataStore : IAccountCreditsDataStore
     {
         private readonly ApplicationDbContext _applicationDbContext;
 
-        public AccountWallet(ApplicationDbContext applicationDbContext)
+        public AccountWalletDataStore(ApplicationDbContext applicationDbContext)
         {
             _applicationDbContext = applicationDbContext;
         }
@@ -30,6 +30,7 @@ namespace SlotAPI.DataStores
             {
                 try
                 {
+                    _applicationDbContext.Entry(player).OriginalValues["Balance"] = player.Balance;
                     player.Balance += amount;
                     _applicationDbContext.SaveChanges();
                 }
@@ -65,6 +66,7 @@ namespace SlotAPI.DataStores
                 {
                     try
                     {
+                        _applicationDbContext.Entry(player).OriginalValues["Balance"] = player.Balance;
                         player.Balance -= amount;
                         _applicationDbContext.SaveChanges();
                     }
@@ -80,7 +82,12 @@ namespace SlotAPI.DataStores
                     }
 
                 }
+                else
+                {
+                    throw new Exception("Insufficient Balance.");
+                }
             }
+           
 
             return response;
         }

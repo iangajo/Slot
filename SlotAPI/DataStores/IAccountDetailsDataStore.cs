@@ -6,10 +6,12 @@ using SlotAPI.Models;
 
 namespace SlotAPI.DataStores
 {
-    public interface IAccountDetails
+    public interface IAccountDetailsDataStore
     {
-        bool Registration(string username, string password);
+        int Registration(string username, string password);
 
         void SaveToken(int playerId, string token);
+
+        string GetToken(int playerId);
     }
 }

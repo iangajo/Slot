@@ -31,12 +31,15 @@ namespace SlotAPI
                 
             });
 
+            services.AddTransient<ITransactionHistoryDataStore, TransactionHistoryDataStore>();
+            services.AddTransient<IAccountCreditsDataStore, AccountWalletDataStore>();
+            services.AddTransient<IAccountDetailsDataStore, AccountDetailsDataStore>();
+
             services.AddTransient<IReel, Reel>();
             services.AddTransient<IGame, Game>();
-            services.AddTransient<ITransactionHistory, Transaction>();
-            services.AddTransient<IAccountCredits, AccountWallet>();
-            services.AddTransient<IAccountDetails, AccountDetails>();
             services.AddTransient<IAccount, Account>();
+            services.AddTransient<ITransaction, Transaction>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

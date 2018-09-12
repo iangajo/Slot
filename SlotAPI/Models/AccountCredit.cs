@@ -13,6 +13,7 @@ namespace SlotAPI.Models
         public int PlayerId { get; set; }
 
         [Required]
+        [ConcurrencyCheck]
         public decimal Balance { get; set; }
 
         [Timestamp]

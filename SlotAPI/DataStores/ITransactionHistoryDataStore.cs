@@ -6,7 +6,7 @@ using SlotAPI.Models;
 
 namespace SlotAPI.DataStores
 {
-    public interface ITransactionHistory
+    public interface ITransactionHistoryDataStore
     {
         void AddTransactionHistory(decimal winAmount, int playerId, string transaction, string gameId, int winningLine, string winningCombinations);
 
