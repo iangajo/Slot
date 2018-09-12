@@ -11,6 +11,7 @@ namespace SlotAPI.DataStore
     {
         public DbSet<AccountCredit> AccountCredit { get; set; }
         public DbSet<TransactionHistory> TransactionHistory { get; set; }
+        public DbSet<Account> Accounts { get; set; }
 
         public ApplicationDbContext(DbContextOptions options) : base(options)
         {

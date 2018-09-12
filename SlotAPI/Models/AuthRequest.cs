@@ -5,9 +5,8 @@ using System.Threading.Tasks;
 
 namespace SlotAPI.Models
 {
-    public class BaseResponse
+    public class AuthRequest
     {
-        public bool Success { get; set; }
-        public string ErrorMessage { get; set; }
+        public int PlayerId { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using SlotAPI.DataStore;
 using SlotAPI.Domains;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using SlotAPI.DataStores;
 using SlotAPI.Models;
 
@@ -16,22 +17,59 @@ namespace SlotAPI.Controllers
         private readonly IGame _game;
         private readonly IAccountCredits _accountCredits;
         private readonly ITransactionHistory _transactionHistory;
+        private readonly IAccount _account;
 
-        public Slot(ApplicationDbContext applicationDbContext, IReel reel, IGame game, IAccountCredits accountCredits, ITransactionHistory transactionHistory)
+        public Slot(ApplicationDbContext applicationDbContext, IReel reel, IGame game, IAccountCredits accountCredits, ITransactionHistory transactionHistory, IAccount account)
         {
             _applicationDbContext = applicationDbContext;
             _reel = reel;
             _game = game;
             _accountCredits = accountCredits;
             _transactionHistory = transactionHistory;
+            _account = account;
             _applicationDbContext.Database.EnsureCreated();
 
+        }
+
+        [HttpPost]
+        [Route("api/register")]
+        public ActionResult Registration([FromBody]Registration registration)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
+           var response = _account.Register(registration.Username, registration.Password);
+
+           
+            return Ok(response);
+        }
+
+        [HttpPost]
+        [Route("api/auth/{playerId}")]
+        public ActionResult Auth([FromRoute]int playerId)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
+            var response = _account.GenerateToken(playerId);
+
+            return Ok(response);
         }
 
         [HttpPost]
         [Route("api/spin")]
         public ActionResult Spin([FromBody]SpinRequest spinRequest)
         {
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
             var reelResults = _game.Spin();
 
             var gameId = _game.GenerateGameId();

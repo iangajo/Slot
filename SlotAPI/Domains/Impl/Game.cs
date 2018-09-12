@@ -52,8 +52,8 @@ namespace SlotAPI.Domains.Impl
             var isCascade = false;
             var stillWinning = true;
 
-            //try
-            //{
+            try
+            {
 
                 _accountCredits.Debit(playerId, bet);
 
@@ -168,11 +168,11 @@ namespace SlotAPI.Domains.Impl
                         }
                     }
                 }
-            //}
-            //catch (Exception e)
-            //{
-            //    baseResponse.ErrorMessage = e.Message;
-            //}
+            }
+            catch (Exception e)
+            {
+                baseResponse.ErrorMessage = e.Message;
+            }
 
             return baseResponse;
         }
@@ -307,7 +307,12 @@ namespace SlotAPI.Domains.Impl
 
                         _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, winnings);
 
-                        _accountCredits.Credit(playerId, winAmount);
+                        var creditResponse = _accountCredits.Credit(playerId, winAmount);
+
+                        if (!string.IsNullOrEmpty(creditResponse.ErrorMessage))
+                        {
+                            throw new Exception(creditResponse.ErrorMessage);
+                        }
                     }
 
                     tempReelWinResults.Clear();

@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using SlotAPI.Models;
 
 namespace SlotAPI.DataStores
 {
     public interface IAccountCredits
     {
-        void Credit(int playerId, decimal amount);
+        BaseResponse Credit(int playerId, decimal amount);
 
-        void Debit(int playerId, decimal amount);
+        BaseResponse Debit(int playerId, decimal amount);
 
         decimal GetBalance(int playerId);
     }
