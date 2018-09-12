@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace SlotAPI.Models
 {
-    public class Reel
+    public class ReelStrip
     {
         public int Id { get; set; }
         public string Symbol { get; set; }

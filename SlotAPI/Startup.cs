@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlotAPI.DataStore;
+using SlotAPI.DataStores;
+using SlotAPI.Domains;
+using SlotAPI.Domains.Impl;
 
 namespace SlotAPI
 {
@@ -27,6 +30,11 @@ namespace SlotAPI
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
                 
             });
+
+            services.AddTransient<IReel, Reel>();
+            services.AddTransient<IGame, Game>();
+            services.AddTransient<ITransactionHistory, Transaction>();
+            services.AddTransient<IAccountCredits, AccountWallet>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

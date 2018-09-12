@@ -19,5 +19,9 @@ namespace SlotAPI.Models
         public string Transaction { get; set; }
 
         public decimal Amount { get; set; }
+
+        public int WinningLine { get; set; }
+
+        public string WinningCombination { get; set; }
     }
 }
