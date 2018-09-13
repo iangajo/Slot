@@ -11,9 +11,10 @@ namespace Simulation
         static void Main(string[] args)
         {
             var client = new HttpClient();
+
             var registration = new Register()
             {
-                Username = "user00002",
+                Username = "user00003",
                 Password = "123"
             };
 
@@ -25,10 +26,23 @@ namespace Simulation
 
             var response = client.PostAsync("http://localhost:5000/api/register", byteContent);
 
-            if (response.IsCompleted)
+            //var r = client.GetAsync("http://localhost:5000/api/symbolstats");
+
+            //using (var content = r.Result.Content)
+            //{
+            //    var x = content.ReadAsStringAsync();
+            //    Console.WriteLine(x.Result);
+
+            //}
+
+            if (response.IsCompletedSuccessfully)
             {
                 Console.WriteLine("Done");
             }
+
+            var a = response.Result.Content.ReadAsStringAsync();
+
+            Console.WriteLine(a.Result);
 
             Console.ReadLine();
 
