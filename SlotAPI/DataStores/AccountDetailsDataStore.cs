@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity.UI.Pages.Internal.Account;
-using SlotAPI.DataStore;
+﻿using SlotAPI.DataStore;
 using SlotAPI.Models;
+using System.Linq;
 
 namespace SlotAPI.DataStores
 {
@@ -28,7 +24,7 @@ namespace SlotAPI.DataStores
 
             _applicationDbContext.AccountCredit.Add(new AccountCredit()
             {
-                Balance = 0
+                Balance = 100.00m
             });
 
             _applicationDbContext.SaveChanges();

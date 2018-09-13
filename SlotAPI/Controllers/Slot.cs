@@ -92,7 +92,8 @@ namespace SlotAPI.Controllers
             {
                 ErrorMessage = errorMessage.ErrorMessage,
                 Balance = balance,
-                Transaction = transaction
+                Transaction = transaction,
+                Success = !string.IsNullOrEmpty(transaction)
             };
 
             return Ok(response);
@@ -115,6 +116,33 @@ namespace SlotAPI.Controllers
                 Transaction = transaction,
                 Success = !string.IsNullOrEmpty(transaction)
             };
+
+            return Ok(response);
+        }
+
+        [HttpGet]
+        [Route("api/paylinestats")]
+        public ActionResult GetPayLineWinStats()
+        {
+            var response = _transaction.GetPayLineStats();
+
+            return Ok(response);
+        }
+
+        [HttpGet]
+        [Route("api/symbolstats")]
+        public ActionResult GetSymbolWinStats()
+        {
+            var response = _transaction.GetSymbolStats();
+
+            return Ok(response);
+        }
+
+        [HttpGet]
+        [Route("api/winamount/{playerId}")]
+        public ActionResult GetSymbolWinStats([FromRoute]int playerId)
+        {
+            var response = _transaction.GetPlayerTotalWinAmount(playerId);
 
             return Ok(response);
         }

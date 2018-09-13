@@ -13,5 +13,11 @@ namespace SlotAPI.DataStores
         BaseResponse Debit(int playerId, decimal amount);
 
         decimal GetBalance(int playerId);
+
+        BaseResponse CreditBonusSpin(int playerId);
+
+        BaseResponse DebitBonusSpin(int playerId);
+
+        int GetPlayerSpinBonus(int playerId);
     }
 }

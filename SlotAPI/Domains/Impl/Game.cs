@@ -16,11 +16,14 @@ namespace SlotAPI.Domains.Impl
         private readonly ITransactionHistoryDataStore _transactionHistory;
         private readonly IReel _reel;
         private readonly IAccountCreditsDataStore _accountCredits;
-        public Game(IReel reel, ITransactionHistoryDataStore transactionHistory, IAccountCreditsDataStore accountCredits)
+        private readonly IStatisticsDataStore _statisticsDataStore;
+
+        public Game(IReel reel, ITransactionHistoryDataStore transactionHistory, IAccountCreditsDataStore accountCredits, IStatisticsDataStore statisticsDataStore)
         {
             _reel = reel;
             _transactionHistory = transactionHistory;
             _accountCredits = accountCredits;
+            _statisticsDataStore = statisticsDataStore;
         }
 
         public List<ReelResult> Spin()
@@ -55,8 +58,19 @@ namespace SlotAPI.Domains.Impl
             try
             {
 
-                _accountCredits.Debit(playerId, bet);
+                var spinBonus = _accountCredits.GetPlayerSpinBonus(playerId);
 
+                if (spinBonus > 0)
+                {
+                    bet = 1;
+
+                    _accountCredits.DebitBonusSpin(playerId);
+                }
+                else
+                {
+                    _accountCredits.Debit(playerId, bet);
+                }
+                
                 while (stillWinning)
                 {
                     var winResults = CheckIfThereMatch(spinResults, bet, GenerateGameId(), isCascade, playerId);
@@ -82,7 +96,7 @@ namespace SlotAPI.Domains.Impl
 
                         var remainingSymbolCount = remainingSymbol.Count();
 
-                        //Move down the remaining reel symbol
+                        //Cascade down the remaining reel symbol
                         bool hasLastItem = false;
                         if (remainingSymbol.Any())
                         {
@@ -263,6 +277,13 @@ namespace SlotAPI.Domains.Impl
             var response = new List<ReelWinResult>();
             var tempReelWinResults = new List<ReelWinResult>();
 
+            var bonusSpinCount = spinResult.Count(s => s.Symbol == "Bonus");
+
+            if (bonusSpinCount >= 3)
+            {
+                _accountCredits.CreditBonusSpin(playerId);
+            }
+
             for (var i = 1; i < WinCombinations; i++)
             {
                 var winningCombinations = GetWinningCombinations(i);
@@ -303,11 +324,12 @@ namespace SlotAPI.Domains.Impl
 
                         response.AddRange(tempReelWinResults);
 
-                        var winnings = string.Join(",", winningCombinations);
-
-                        _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, winnings);
+                        _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, symbol);
 
                         var creditResponse = _accountCredits.Credit(playerId, winAmount);
+
+                        _statisticsDataStore.SymbolStat(symbol);
+                        _statisticsDataStore.PayLineStat(i);
 
                         if (!string.IsNullOrEmpty(creditResponse.ErrorMessage))
                         {

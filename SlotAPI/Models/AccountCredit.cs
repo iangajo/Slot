@@ -16,6 +16,8 @@ namespace SlotAPI.Models
         [ConcurrencyCheck]
         public decimal Balance { get; set; }
 
+        public int BonusSpin { get; set; } = 0;
+
         [Timestamp]
         public byte[] RowVersion { get; set; }
     }

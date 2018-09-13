@@ -22,6 +22,6 @@ namespace SlotAPI.Models
 
         public int WinningLine { get; set; }
 
-        public string WinningCombination { get; set; }
+        public string WinningSymbol { get; set; }
     }
 }

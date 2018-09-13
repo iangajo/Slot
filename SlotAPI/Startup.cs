@@ -32,8 +32,9 @@ namespace SlotAPI
             });
 
             services.AddTransient<ITransactionHistoryDataStore, TransactionHistoryDataStore>();
-            services.AddTransient<IAccountCreditsDataStore, AccountWalletDataStore>();
+            services.AddTransient<IAccountCreditsDataStore, AccountCreditDataStore>();
             services.AddTransient<IAccountDetailsDataStore, AccountDetailsDataStore>();
+            services.AddTransient<IStatisticsDataStore, StatisticsDataStore>();
 
             services.AddTransient<IReel, Reel>();
             services.AddTransient<IGame, Game>();
