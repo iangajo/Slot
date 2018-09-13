@@ -57,10 +57,10 @@ namespace SlotAPI.Controllers
                 return BadRequest();
             }
 
-            var tokenRequest = Request.Headers["Authorization"].ToString();
+            var requestToken = Request.Headers["Authorization"].ToString();
             var currentToken = $"Bearer{_account.GetToken(spinRequest.PlayerId)}";
 
-            if (tokenRequest != currentToken)
+            if (requestToken != currentToken)
             {
                 return Unauthorized();
             }

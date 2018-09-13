@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 
 namespace Simulation
@@ -10,13 +11,20 @@ namespace Simulation
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("10 Million Request will start in 10 seconds");
+            Thread.Sleep(10000);
+
             var client = new HttpClient();
 
+            var random = new Random();
+            var suffix = random.Next(1, 10000);
             var registration = new Register()
             {
-                Username = "user00003",
-                Password = "123"
+                Username = $"user{suffix}",
+                Password = "Password123!"
             };
+
+            
 
             var json = JsonConvert.SerializeObject(registration);
 
@@ -47,6 +55,23 @@ namespace Simulation
             Console.ReadLine();
 
             
+        }
+
+        public static T PostAsJson<T, T1>(T1 request, string url)
+        {
+            using (var client = new HttpClient())
+            {
+                var jsonSerializeObject = JsonConvert.SerializeObject(request);
+                var buffer = Encoding.UTF8.GetBytes(jsonSerializeObject);
+                var byteContent = new ByteArrayContent(buffer);
+                byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                var response = client.PostAsync(url, byteContent);
+
+                var jsonResult = response.Result.Content.ReadAsStringAsync();
+
+                return JsonConvert.DeserializeObject<T>(jsonResult.Result);
+            }
         }
     }
 }
