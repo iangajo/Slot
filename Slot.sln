@@ -5,7 +5,9 @@ VisualStudioVersion = 15.0.28010.2019
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlotAPI", "SlotAPI\SlotAPI.csproj", "{E64DDEC7-86B0-4DB7-BA89-D3C9A79E750F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlotsUnitTest", "SlotsUnitTest\SlotsUnitTest.csproj", "{80CC294C-FB8A-45CE-8B8F-491722919FAD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlotsUnitTest", "SlotsUnitTest\SlotsUnitTest.csproj", "{80CC294C-FB8A-45CE-8B8F-491722919FAD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulation", "Simulation\Simulation.csproj", "{2D4D25BF-9766-488F-8AF3-B8639F1F392D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{80CC294C-FB8A-45CE-8B8F-491722919FAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80CC294C-FB8A-45CE-8B8F-491722919FAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80CC294C-FB8A-45CE-8B8F-491722919FAD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D4D25BF-9766-488F-8AF3-B8639F1F392D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D4D25BF-9766-488F-8AF3-B8639F1F392D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D4D25BF-9766-488F-8AF3-B8639F1F392D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D4D25BF-9766-488F-8AF3-B8639F1F392D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
