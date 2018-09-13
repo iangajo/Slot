@@ -126,8 +126,8 @@ namespace SlotAPI.Controllers
         }
 
         [HttpGet]
-        [Route("api/winamount/{playerId}")]
-        public ActionResult GetSymbolWinStats([FromRoute]int playerId)
+        [Route("api/totalwinamount/{playerId}")]
+        public ActionResult GetPlayerTotalWin([FromRoute]int playerId)
         {
             var response = _transaction.GetPlayerTotalWinAmount(playerId);
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SlotAPI.Controllers;
@@ -68,12 +69,23 @@ namespace SlotsUnitTest
             var mockITransaction = new Mock<ITransaction>();
             var mockIAccount = new Mock<IAccount>();
 
-            var controller = new Slot(mockIGame.Object, mockITransaction.Object, mockIAccount.Object);
+            
 
-            controller.HttpContext.Request.Headers.Add("Authorization", "mockHeader");
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers.Add("Authorization", "BearerMockHeader");
+
+            var controllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext,
+            };
+
+            var controller = new Slot(mockIGame.Object, mockITransaction.Object, mockIAccount.Object)
+            {
+                ControllerContext = controllerContext
+            };
 
             mockIAccount.Setup(m => m.GetToken(It.IsAny<int>()))
-                .Returns("mockHeader");
+                .Returns("MockHeader");
 
             mockIGame.Setup(m => m.Spin());
             mockIGame.Setup(m => m.CheckIfPlayerWin(It.IsAny<List<ReelResult>>(), It.IsAny<decimal>(), It.IsAny<int>())).Returns(new BaseResponse()
@@ -96,6 +108,113 @@ namespace SlotsUnitTest
 
             Assert.Equal("Win", value.Transaction);
             Assert.Equal(100, value.Balance);
+        }
+
+        [Fact]
+        public void GetPlayerState()
+        {
+            var mockIGame = new Mock<IGame>();
+            var mockITransaction = new Mock<ITransaction>();
+            var mockIAccount = new Mock<IAccount>();
+
+
+            var controller = new Slot(mockIGame.Object, mockITransaction.Object, mockIAccount.Object);
+
+            mockITransaction.Setup(m => m.GetLastTransactionHistoryByPlayer(It.IsAny<int>()))
+                .Returns(() => new TransactionHistory()
+                {
+                    Transaction = "Win"
+                });
+
+            mockIAccount.Setup(m => m.GetBalance(It.IsAny<int>())).Returns(100);
+
+            var response = controller.GetPlayerState(It.IsAny<int>()) as OkObjectResult;
+
+            var value = Assert.IsType<SpinResponse>(response.Value);
+
+            Assert.Equal("Win", value.Transaction);
+            Assert.Equal(100, value.Balance);
+        }
+
+
+        [Fact]
+        public void GetPayLineWinStats()
+        {
+            var mockIGame = new Mock<IGame>();
+            var mockITransaction = new Mock<ITransaction>();
+            var mockIAccount = new Mock<IAccount>();
+
+
+            var controller = new Slot(mockIGame.Object, mockITransaction.Object, mockIAccount.Object);
+
+            mockITransaction.Setup(m => m.GetPayLineStats())
+                .Returns(() => new List<PayLineStat>()
+                {
+                    new PayLineStat(),
+                    new PayLineStat(),
+                    new PayLineStat(),
+                    new PayLineStat(),
+                    new PayLineStat()
+                });
+
+            var response = controller.GetPayLineWinStats() as OkObjectResult;
+
+            var value = Assert.IsType<List<PayLineStat>>(response.Value);
+
+            Assert.Equal(5, value.Count);
+
+        }
+
+        [Fact]
+        public void GetSymbolWinStats()
+        {
+            var mockIGame = new Mock<IGame>();
+            var mockITransaction = new Mock<ITransaction>();
+            var mockIAccount = new Mock<IAccount>();
+
+
+            var controller = new Slot(mockIGame.Object, mockITransaction.Object, mockIAccount.Object);
+
+            mockITransaction.Setup(m => m.GetSymbolStats())
+                .Returns(() => new List<SymbolStat>()
+                {
+                    new SymbolStat(),
+                    new SymbolStat(),
+                    new SymbolStat(),
+                    new SymbolStat(),
+                    new SymbolStat()
+                });
+
+            var response = controller.GetSymbolWinStats() as OkObjectResult;
+
+            var value = Assert.IsType<List<SymbolStat>>(response.Value);
+
+            Assert.Equal(5, value.Count);
+
+        }
+
+        [Fact]
+        public void GetPlayerTotalWin()
+        {
+            var mockIGame = new Mock<IGame>();
+            var mockITransaction = new Mock<ITransaction>();
+            var mockIAccount = new Mock<IAccount>();
+
+
+            var controller = new Slot(mockIGame.Object, mockITransaction.Object, mockIAccount.Object);
+
+            mockITransaction.Setup(m => m.GetPlayerTotalWinAmount(It.IsAny<int>()))
+                .Returns(new WinAmount()
+                {
+                    Amount = 1000.00m
+                });
+
+            var response = controller.GetPlayerTotalWin(It.IsAny<int>()) as OkObjectResult;
+
+            var value = Assert.IsType<WinAmount>(response.Value);
+
+            Assert.Equal(1000.00m, value.Amount);
+
         }
     }
 }
