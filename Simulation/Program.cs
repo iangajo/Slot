@@ -11,7 +11,7 @@ namespace Simulation
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("10 Million Request will start in 10 seconds");
+            Console.WriteLine("Slots simulation will start in 10 seconds");
             Thread.Sleep(10000);
 
             var client = new HttpClient();
@@ -24,43 +24,55 @@ namespace Simulation
                 Password = "Password123!"
             };
 
-            
 
-            var json = JsonConvert.SerializeObject(registration);
+            var registrationResponse = PostAsJson<RegistrationResponse, Register>(registration, "http://localhost:62942/api/register");
 
-            var buffer = Encoding.UTF8.GetBytes(json);
-            var byteContent = new ByteArrayContent(buffer);
-            byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            Console.WriteLine();
 
-            var response = client.PostAsync("http://localhost:5000/api/register", byteContent);
+            Console.WriteLine($"Registration Completed with PlayerId:{registrationResponse.PlayerId}");
 
-            //var r = client.GetAsync("http://localhost:5000/api/symbolstats");
+            Console.WriteLine("Getting Authentication Token");
 
-            //using (var content = r.Result.Content)
-            //{
-            //    var x = content.ReadAsStringAsync();
-            //    Console.WriteLine(x.Result);
+            var authResponse = PostAsJson<AuthResponse, BaseResponse>(null,
+                $"http://localhost:62942/api/auth/{registrationResponse.PlayerId}");
 
-            //}
+            Console.WriteLine($"Authentication Token: {authResponse.access_token}");
 
-            if (response.IsCompletedSuccessfully)
+            Console.WriteLine();
+
+            Console.WriteLine("Starting 10 Million Spin Simulation");
+
+            var spinRequest = new SpinRequest()
             {
-                Console.WriteLine("Done");
+                PlayerId = registrationResponse.PlayerId,
+                Bet = 1
+            };
+
+            Console.WriteLine();
+            Console.WriteLine();
+            for (int i = 0; i < 10000000; i++)
+            {
+                PostAsJson<SpinResponse, SpinRequest>(spinRequest, "http://localhost:62942/api/spin",
+                    authResponse.access_token);
+
+                Console.SetCursorPosition(0, 9);
+                Console.WriteLine($"Spin: {i}");
             }
 
-            var a = response.Result.Content.ReadAsStringAsync();
-
-            Console.WriteLine(a.Result);
+            Console.WriteLine("Completed");
 
             Console.ReadLine();
-
-            
         }
 
-        public static T PostAsJson<T, T1>(T1 request, string url)
+        public static T PostAsJson<T, T1>(T1 request, string url, string authToken = default(string))
         {
             using (var client = new HttpClient())
             {
+                if (!string.IsNullOrEmpty(authToken))
+                {
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+                }
+
                 var jsonSerializeObject = JsonConvert.SerializeObject(request);
                 var buffer = Encoding.UTF8.GetBytes(jsonSerializeObject);
                 var byteContent = new ByteArrayContent(buffer);

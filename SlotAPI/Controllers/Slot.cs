@@ -57,7 +57,7 @@ namespace SlotAPI.Controllers
                 return BadRequest();
             }
 
-            var requestToken = Request.Headers["Authorization"].ToString();
+            var requestToken = Request.Headers["Authorization"].ToString().Replace(" ", string.Empty);
             var currentToken = $"Bearer{_account.GetToken(spinRequest.PlayerId)}";
 
             if (requestToken != currentToken)
@@ -96,12 +96,15 @@ namespace SlotAPI.Controllers
             var transaction = _transaction.GetLastTransactionHistoryByPlayer(playerId).Transaction;
             var balance = _account.GetBalance(playerId);
 
+            var success = balance > 0;
+
             var response = new SpinResponse()
             {
                 ErrorMessage = string.Empty,
                 Balance = balance,
                 Transaction = transaction,
-                Success = !string.IsNullOrEmpty(transaction)
+                Success = success
+
             };
 
             return Ok(response);
