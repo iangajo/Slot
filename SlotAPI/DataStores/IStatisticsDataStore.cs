@@ -8,9 +8,9 @@ namespace SlotAPI.DataStores
 {
     public interface IStatisticsDataStore
     {
-        void PayLineStat(int payline);
+        void PayLineStat(int payLine);
 
-        void SymbolStat(string symbol);
+        void SymbolStat(string symbol, int match);
 
         List<PayLineStat> GetPayLineStats();
 

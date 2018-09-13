@@ -328,7 +328,7 @@ namespace SlotAPI.Domains.Impl
 
                         var creditResponse = _accountCredits.Credit(playerId, winAmount);
 
-                        _statisticsDataStore.SymbolStat(symbol);
+                        _statisticsDataStore.SymbolStat(symbol, match);
                         _statisticsDataStore.PayLineStat(i);
 
                         if (!string.IsNullOrEmpty(creditResponse.ErrorMessage))

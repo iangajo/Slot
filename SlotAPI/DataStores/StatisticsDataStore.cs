@@ -17,17 +17,23 @@ namespace SlotAPI.DataStores
             _applicationDbContext = applicationDbContext;
         }
 
-        public void PayLineStat(int payline)
+        public void PayLineStat(int payLine)
         {
-            var line = _applicationDbContext.PayLineWinStat.First(p => p.Id == payline);
+            var line = _applicationDbContext.PayLineWinStat.First(p => p.Id == payLine);
             line.Stat += 1;
             _applicationDbContext.SaveChanges();
         }
 
-        public void SymbolStat(string symbol)
+        public void SymbolStat(string symbol, int match)
         {
             var line = _applicationDbContext.SymbolWinStat.First(p => p.Symbol == symbol);
-            line.Stat += 1;
+
+            if (match == 3)
+                line.ThreeKind += 1;
+            else if (match == 4)
+                line.FourKind += 1;
+            else if (match == 5) line.FiveKind += 1;
+
             _applicationDbContext.SaveChanges();
         }
 

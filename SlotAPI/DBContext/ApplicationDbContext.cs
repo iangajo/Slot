@@ -59,14 +59,14 @@ namespace SlotAPI.DataStore
                 );
 
             modelBuilder.Entity<SymbolStat>().HasData(
-                new SymbolStat() { Id = 1, Symbol = "S0", Stat = 0 },
-                new SymbolStat() { Id = 2, Symbol = "S1", Stat = 0 },
-                new SymbolStat() { Id = 3, Symbol = "S2", Stat = 0 },
-                new SymbolStat() { Id = 4, Symbol = "S3", Stat = 0 },
-                new SymbolStat() { Id = 5, Symbol = "S4", Stat = 0 },
-                new SymbolStat() { Id = 6, Symbol = "S5", Stat = 0 },
-                new SymbolStat() { Id = 7, Symbol = "S6", Stat = 0 },
-                new SymbolStat() { Id = 8, Symbol = "S7", Stat = 0 }
+                new SymbolStat() { Id = 1, Symbol = "S0", ThreeKind = 0,FourKind = 0, FiveKind = 0},
+                new SymbolStat() { Id = 2, Symbol = "S1", ThreeKind = 0, FourKind = 0, FiveKind = 0 },
+                new SymbolStat() { Id = 3, Symbol = "S2", ThreeKind = 0, FourKind = 0, FiveKind = 0 },
+                new SymbolStat() { Id = 4, Symbol = "S3", ThreeKind = 0, FourKind = 0, FiveKind = 0 },
+                new SymbolStat() { Id = 5, Symbol = "S4", ThreeKind = 0, FourKind = 0, FiveKind = 0 },
+                new SymbolStat() { Id = 6, Symbol = "S5", ThreeKind = 0, FourKind = 0, FiveKind = 0 },
+                new SymbolStat() { Id = 7, Symbol = "S6", ThreeKind = 0, FourKind = 0, FiveKind = 0 },
+                new SymbolStat() { Id = 8, Symbol = "S7", ThreeKind = 0, FourKind = 0, FiveKind = 0 }
             );
         }
     }

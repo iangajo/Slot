@@ -13,6 +13,10 @@ namespace SlotAPI.Models
 
         public string Symbol { get; set; }
 
-        public int Stat { get; set; } = 0;
+        public int FiveKind { get; set; } = 0;
+
+        public int FourKind { get; set; } = 0;
+
+        public int ThreeKind { get; set; } = 0;        
     }
 }
