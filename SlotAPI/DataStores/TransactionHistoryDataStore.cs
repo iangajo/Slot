@@ -13,6 +13,7 @@ namespace SlotAPI.DataStores
         public TransactionHistoryDataStore(ApplicationDbContext applicationDbContext)
         {
             _applicationDbContext = applicationDbContext;
+            _applicationDbContext.Database.EnsureCreated();
         }
 
         public void AddTransactionHistory(decimal winAmount, int playerId, string transaction, string gameId, int winningLine, string winningSymbol)

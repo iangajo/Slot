@@ -13,6 +13,7 @@ namespace SlotAPI.DataStores
         public AccountCreditDataStore(ApplicationDbContext applicationDbContext)
         {
             _applicationDbContext = applicationDbContext;
+            _applicationDbContext.Database.EnsureCreated();
         }
 
         public BaseResponse Credit(int playerId, decimal amount)

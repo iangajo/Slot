@@ -11,6 +11,7 @@ namespace SlotAPI.DataStores
         public AccountDetailsDataStore(ApplicationDbContext applicationDbContext)
         {
             _applicationDbContext = applicationDbContext;
+            _applicationDbContext.Database.EnsureCreated();
         }
 
         public int Registration(string username, string password)

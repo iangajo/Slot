@@ -15,6 +15,7 @@ namespace SlotAPI.DataStores
         public StatisticsDataStore(ApplicationDbContext applicationDbContext)
         {
             _applicationDbContext = applicationDbContext;
+            _applicationDbContext.Database.EnsureCreated();
         }
 
         public void PayLineStat(int payLine)
