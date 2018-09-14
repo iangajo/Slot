@@ -27,4 +27,30 @@ namespace Simulation
         public string Transaction { get; set; }
         public decimal Balance { get; set; }
     }
+
+    public class WinAmount : BaseResponse
+    {
+        public decimal Amount { get; set; }
+    }
+
+    public class PayLineStat
+    {
+        public int Id { get; set; }
+
+        public int Stat { get; set; } = 0;
+    }
+
+    public class SymbolStat
+    {
+        public int Id { get; set; }
+
+        public string Symbol { get; set; }
+
+        public int FiveKind { get; set; } = 0;
+
+        public int FourKind { get; set; } = 0;
+
+        public int ThreeKind { get; set; } = 0;
+    }
+
 }

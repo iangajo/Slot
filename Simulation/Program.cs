@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -50,7 +51,7 @@ namespace Simulation
 
             Console.WriteLine();
             Console.WriteLine();
-            for (int i = 0; i < 10000000; i++)
+            for (var i = 0; i < 10000000; i++)
             {
                 PostAsJson<SpinResponse, SpinRequest>(spinRequest, "http://localhost:62942/api/spin",
                     authResponse.access_token);
@@ -59,7 +60,40 @@ namespace Simulation
                 Console.WriteLine($"Spin: {i}");
             }
 
-            Console.WriteLine("Completed");
+            Console.WriteLine("Spin Completed");
+
+            Console.WriteLine();
+            Console.WriteLine("Retrieving RTP");
+            var winAmountResponse =
+                GetAsJson<WinAmount>($"http://localhost:62942/api/totalwinamount/{registrationResponse.PlayerId}");
+
+            Console.WriteLine($"Player Total Win Amount is: {winAmountResponse.Amount}");
+
+            Console.WriteLine();
+            Console.WriteLine("Retrieving Winning Combinations Hit rate");
+
+            var payLinesStats =
+                GetAsJson<List<PayLineStat>>($"http://localhost:62942/api/paylinestats");
+
+            foreach (var item in payLinesStats)
+            {
+                Console.WriteLine($"PayLine: {item.Id}, HitRate: {item.Stat}");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Retrieving Prizes Hit Rate");
+
+            var symbolStats =
+                GetAsJson<List<SymbolStat>>($"http://localhost:62942/api/symbolstats");
+
+            Console.WriteLine();
+
+            foreach (var item in symbolStats)
+            {
+                Console.WriteLine($"Symbol: {item.Symbol}, Five of a Kind: {item.FiveKind}, Four of a Kind: {item.FourKind}, Three of a Kind: {item.ThreeKind}");
+            }
+
+            Console.WriteLine();
 
             Console.ReadLine();
         }
@@ -79,6 +113,18 @@ namespace Simulation
                 byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
                 var response = client.PostAsync(url, byteContent);
+
+                var jsonResult = response.Result.Content.ReadAsStringAsync();
+
+                return JsonConvert.DeserializeObject<T>(jsonResult.Result);
+            }
+        }
+
+        public static T GetAsJson<T>(string url)
+        {
+            using (var client = new HttpClient())
+            {
+                var response = client.GetAsync(url);
 
                 var jsonResult = response.Result.Content.ReadAsStringAsync();
 
