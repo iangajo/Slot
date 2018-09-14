@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using SlotAPI.DataStores;
+using ReelResult = SlotAPI.Models.ReelResult;
 
 namespace SlotAPI.Domains.Impl
 {
@@ -71,7 +72,7 @@ namespace SlotAPI.Domains.Impl
                 {
                     _accountCredits.Debit(playerId, bet);
                 }
-                
+
                 while (stillWinning)
                 {
                     var winResults = CheckIfThereMatch(spinResults, bet, GenerateGameId(), isCascade, playerId);
@@ -87,100 +88,80 @@ namespace SlotAPI.Domains.Impl
                     for (var reelNumber = 1; reelNumber < (MaxReel + 1); reelNumber++)
                     {
                         var number = reelNumber;
+
                         var winnerReelSymbol = winResults.Where(w => w.ReelNumber == number).ToList();
 
-                        //remove winning reel
-                        spinResults.RemoveAll(r => winnerReelSymbol.Select(w => w.Order).Contains(r.Order) && r.ReelNumber == number);
+                        var winnerReelSymbolCount = winnerReelSymbol.GroupBy(w => w.Position).Count();
 
-                        //Get remaining symbol per reel
-                        var remainingSymbol = spinResults.Where(r => r.ReelNumber == number).ToList();
+                        if (winnerReelSymbolCount == 0) continue;
 
-                        var remainingSymbolCount = remainingSymbol.Count();
+                        //Get Minimum order  of the reel
+                        var minimumOrder = spinResults.First(s => s.ReelNumber == reelNumber && s.Position == number).Order;
 
-                        //Cascade down the remaining reel symbol
-                        bool hasLastItem = false;
-                        if (remainingSymbol.Any())
+
+                        var stepBackRange = 1;
+
+                        if (minimumOrder <= 3)
                         {
+                            stepBackRange = minimumOrder - winnerReelSymbolCount;
 
-                            foreach (var item in remainingSymbol.OrderByDescending(r => r.Position))
-                            {
-                                var movePosition = item.Position;
-
-                                if (remainingSymbolCount == 1 && item.Position < 6)
-                                {
-                                    movePosition += 10;
-                                }
-                                else if (remainingSymbolCount == 1 && item.Position > 5 && item.Position < 11)
-                                {
-                                    movePosition += 5;
-                                }
-                                else if (remainingSymbolCount > 1 && item.Position > 10)
-                                {
-                                    hasLastItem = true;
-                                }
-                                else if (remainingSymbolCount > 1 && item.Position < 6)
-                                {
-                                    if (hasLastItem)
-                                        movePosition += 5;
-                                    else
-                                        movePosition += 10;
-
-                                }
-                                else if (remainingSymbolCount > 1 && item.Position > 5 && item.Position < 11)
-                                {
-                                    if (!hasLastItem)
-                                        movePosition += 5;
-                                }
-
-                                if (!hasLastItem)
-                                {
-                                    spinResults.First(r => r.ReelNumber == number
-                                                           && r.Symbol == item.Symbol
-                                                           && r.Order == item.Order
-                                                           && r.Position == item.Position).Position = movePosition;
-                                }
-
-                            }
+                            if (stepBackRange <= 0) stepBackRange = MaxLine + stepBackRange;
+                        }
+                        else
+                        {
+                            stepBackRange = minimumOrder - winnerReelSymbolCount;
                         }
 
-                        var reel = _reel.GetReelStrips(number);
+                        var reelStrip = _reel.GetReelStrips(number);
 
-                        if (remainingSymbolCount > 0)
-                            reel.RemoveAll(r => winnerReelSymbol.Select(w => w.Order).Contains(r.Id));
+                        List<ReelStrip> reelStripsRange = null;
 
-                        var numberOfSymbolsToCascade = (3 - remainingSymbolCount);
+                        if (minimumOrder < stepBackRange)
+                        {
+                            reelStripsRange = reelStrip.Where(r => r.Id < minimumOrder || r.Id >= stepBackRange).ToList();
+                        }
+                        else
+                        {
+                            reelStripsRange = reelStrip.Where(r => r.Id >= stepBackRange && r.Id < minimumOrder).ToList();
+                        }
 
-                        var minimumOrder = 0;
+                        var tempSpinResult = new List<ReelResult>();
 
-                        minimumOrder = numberOfSymbolsToCascade < 3 ? remainingSymbol.OrderBy(r => r.Order).First(r => r.ReelNumber == number).Order : winnerReelSymbol.OrderBy(r => r.Order).First(r => r.ReelNumber == number).Order;
+                        var position = number;
+                        reelStripsRange.ForEach(s =>
+                        {
+                            tempSpinResult.Add(new ReelResult()
+                            {
+                                Position = position,
+                                Order = s.Id,
+                                Symbol = s.Symbol,
+                                ReelNumber = number
+                            });
 
-                        var order = (minimumOrder - 1);
+                            position += 5;
+                        });
 
-                        var counter = 0;
+                        var remainingReels = spinResults.Where(r => r.ReelNumber == number && !winnerReelSymbol.Select(w => w.Order).Contains(r.Order));
 
-                        while (counter != numberOfSymbolsToCascade)
+                        foreach (var remainingReel in remainingReels)
                         {
 
-                            if (order <= 0)
-                                order = 25;
-
-                            if (reel.Any(r => r.Id == order))
+                            tempSpinResult.Add(new ReelResult()
                             {
-                                counter += 1;
-                                var x = reel.First(r => r.Id == order);
+                                Position = position,
+                                Order = remainingReel.Order,
+                                ReelNumber = number,
+                                Symbol = remainingReel.Symbol
+                            });
 
-                                spinResults.Add(new ReelResult()
-                                {
-                                    ReelNumber = number,
-                                    Order = x.Id,
-                                    Symbol = x.Symbol,
-                                    Position = counter * 5
-                                });
-
-                            }
-
-                            order -= 1;
+                            position += 5;
                         }
+
+
+                        spinResults.RemoveAll(s => s.ReelNumber == number);
+
+                        spinResults.AddRange(tempSpinResult);
+
                     }
                 }
             }
@@ -203,64 +184,21 @@ namespace SlotAPI.Domains.Impl
 
             var spinResult = RandomPick();
 
-            if (spinResult >= 24)
+            var position = spinResult;
+            var reelNo = reelNumber;
+
+            for (var i = 0; i < 3; i++)
             {
-                var position = spinResult;
-
                 reelResultPositions.Add(new ReelResult()
                 {
                     ReelNumber = reelNumber,
-                    Position = reelNumber,
-                    Symbol = reelStrips.First(r => r.Id == position).Symbol,
-                    Order = reelStrips.First(r => r.Id == position).Id,
-                });
-
-                position += 1;
-
-                reelResultPositions.Add(new ReelResult()
-                {
-                    ReelNumber = reelNumber,
-                    Position = reelNumber + 5,
+                    Position = reelNo,
                     Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Symbol,
                     Order = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Id
-
                 });
 
+                reelNo += 5;
                 position += 1;
-
-                reelResultPositions.Add(new ReelResult()
-                {
-                    Position = reelNumber + 10,
-                    Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Symbol,
-                    Order = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Id,
-                    ReelNumber = reelNumber
-                });
-            }
-            else
-            {
-                reelResultPositions.Add(new ReelResult()
-                {
-                    Position = reelNumber,
-                    Symbol = reelStrips.First(r => r.Id == spinResult).Symbol,
-                    Order = reelStrips.First(r => r.Id == spinResult).Id,
-                    ReelNumber = reelNumber
-                });
-
-                reelResultPositions.Add(new ReelResult()
-                {
-                    Position = reelNumber + 5,
-                    Symbol = reelStrips.First(r => r.Id == spinResult + 1).Symbol,
-                    Order = reelStrips.First(r => r.Id == spinResult + 1).Id,
-                    ReelNumber = reelNumber
-                });
-
-                reelResultPositions.Add(new ReelResult()
-                {
-                    Position = reelNumber + 10,
-                    Symbol = reelStrips.First(r => r.Id == spinResult + 2).Symbol,
-                    Order = reelStrips.First(r => r.Id == spinResult + 2).Id,
-                    ReelNumber = reelNumber
-                });
             }
 
             return reelResultPositions;
@@ -274,7 +212,7 @@ namespace SlotAPI.Domains.Impl
 
             var randomInteger = BitConverter.ToUInt32(byteArray, 0);
 
-            return randomInteger % 25;
+            return (randomInteger % 25) + 1;
         }
 
 
