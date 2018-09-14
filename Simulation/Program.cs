@@ -16,8 +16,6 @@ namespace Simulation
             Console.WriteLine("You must clear the stats table to be accurate");
             Thread.Sleep(10000);
 
-            var client = new HttpClient();
-
             var random = new Random();
             var suffix = random.Next(1, 10000);
             var registration = new Register()
