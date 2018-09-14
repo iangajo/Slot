@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using SlotAPI.DataStores;
 
 namespace SlotAPI.Domains.Impl
@@ -265,10 +266,15 @@ namespace SlotAPI.Domains.Impl
             return reelResultPositions;
         }
 
-        private int RandomPick()
+        private uint RandomPick()
         {
-            var random = new Random();
-            return random.Next(1, MaxLine);
+            var rng = new RNGCryptoServiceProvider();
+            var byteArray = new byte[4];
+            rng.GetBytes(byteArray);
+
+            var randomInteger = BitConverter.ToUInt32(byteArray, 0);
+
+            return randomInteger % 25;
         }
 
 
