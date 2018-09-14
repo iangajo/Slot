@@ -13,6 +13,7 @@ namespace Simulation
         static void Main(string[] args)
         {
             Console.WriteLine("Slots simulation will start in 10 seconds");
+            Console.WriteLine("You must clear the stats table to be accurate");
             Thread.Sleep(10000);
 
             var client = new HttpClient();
