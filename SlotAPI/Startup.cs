@@ -40,6 +40,7 @@ namespace SlotAPI
             services.AddTransient<IGame, Game>();
             services.AddTransient<IAccount, Account>();
             services.AddTransient<ITransaction, Transaction>();
+            services.AddTransient<IWin, Win>();
 
         }
 

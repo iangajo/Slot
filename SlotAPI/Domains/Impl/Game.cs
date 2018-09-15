@@ -19,13 +19,15 @@ namespace SlotAPI.Domains.Impl
         private readonly IReel _reel;
         private readonly IAccountCreditsDataStore _accountCredits;
         private readonly IStatisticsDataStore _statisticsDataStore;
+        private readonly IWin _win;
 
-        public Game(IReel reel, ITransactionHistoryDataStore transactionHistory, IAccountCreditsDataStore accountCredits, IStatisticsDataStore statisticsDataStore)
+        public Game(IReel reel, ITransactionHistoryDataStore transactionHistory, IAccountCreditsDataStore accountCredits, IStatisticsDataStore statisticsDataStore, IWin win)
         {
             _reel = reel;
             _transactionHistory = transactionHistory;
             _accountCredits = accountCredits;
             _statisticsDataStore = statisticsDataStore;
+            _win = win;
         }
 
         public List<ReelResult> Spin()
@@ -98,7 +100,6 @@ namespace SlotAPI.Domains.Impl
                         //Get Minimum order  of the reel
                         var minimumOrder = spinResults.First(s => s.ReelNumber == reelNumber && s.Position == number).Order;
 
-
                         var stepBackRange = 1;
 
                         if (minimumOrder <= 3)
@@ -116,31 +117,26 @@ namespace SlotAPI.Domains.Impl
 
                         List<ReelStrip> reelStripsRange = null;
 
-                        if (minimumOrder < stepBackRange)
-                        {
-                            reelStripsRange = reelStrip.Where(r => r.Id < minimumOrder || r.Id >= stepBackRange).ToList();
-                        }
-                        else
-                        {
-                            reelStripsRange = reelStrip.Where(r => r.Id >= stepBackRange && r.Id < minimumOrder).ToList();
-                        }
+                        reelStripsRange = minimumOrder < stepBackRange ? 
+                            reelStrip.Where(r => r.Id < minimumOrder || r.Id >= stepBackRange).ToList() : 
+                            reelStrip.Where(r => r.Id >= stepBackRange && r.Id < minimumOrder).ToList();
 
                         var tempSpinResult = new List<ReelResult>();
 
                         var position = number;
-                        reelStripsRange.ForEach(s =>
+
+                        foreach (var reel in reelStripsRange)
                         {
                             tempSpinResult.Add(new ReelResult()
                             {
                                 Position = position,
-                                Order = s.Id,
-                                Symbol = s.Symbol,
+                                Order = reel.Id,
+                                Symbol = reel.Symbol,
                                 ReelNumber = number
                             });
-
                             position += 5;
-                        });
-
+                        }
+                        
                         var remainingReels = spinResults.Where(r => r.ReelNumber == number && !winnerReelSymbol.Select(w => w.Order).Contains(r.Order));
 
                         foreach (var remainingReel in remainingReels)
@@ -230,7 +226,7 @@ namespace SlotAPI.Domains.Impl
 
             for (var i = 1; i < WinCombinations; i++)
             {
-                var winningCombinations = GetWinningCombinations(i);
+                var winningCombinations = _win.GetWinningCombinations(i);
 
                 var result = spinResult.Where(s => winningCombinations.Contains(s.Position)).ToList();
 
@@ -264,13 +260,12 @@ namespace SlotAPI.Domains.Impl
 
                     if (match > 2)
                     {
-                        var winAmount = GetWin(symbol, match, bet);
+                        var winAmount = _win.GetWin(symbol, match, bet);
 
                         response.AddRange(tempReelWinResults);
+                        var creditResponse = _accountCredits.Credit(playerId, winAmount);
 
                         _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, symbol);
-
-                        var creditResponse = _accountCredits.Credit(playerId, winAmount);
 
                         _statisticsDataStore.SymbolStat(symbol, match);
                         _statisticsDataStore.PayLineStat(i);
@@ -291,108 +286,6 @@ namespace SlotAPI.Domains.Impl
             }
 
             return response;
-        }
-
-
-        private int[] GetWinningCombinations(int winningCombination)
-        {
-            switch (winningCombination)
-            {
-                case 1:
-                    return new[] { 6, 7, 8, 9, 10 };
-                case 2:
-                    return new[] { 1, 2, 3, 4, 5 };
-                case 3:
-                    return new[] { 11, 12, 13, 14, 15 };
-                case 4:
-                    return new[] { 1, 2, 8, 9, 10 };
-                case 5:
-                    return new[] { 11, 12, 8, 9, 10 };
-                case 6:
-                    return new[] { 1, 2, 13, 14, 15 };
-                case 7:
-                    return new[] { 6, 7, 8, 9, 10 };
-                case 8:
-                    return new[] { 6, 7, 3, 9, 15 };
-                case 9:
-                    return new[] { 6, 7, 13, 9, 5 };
-                case 10:
-                    return new[] { 1, 7, 3, 4, 5 };
-                case 11:
-                    return new[] { 11, 7, 13, 14, 15 };
-                case 12:
-                    return new[] { 6, 2, 3, 4, 10 };
-                case 13:
-                    return new[] { 6, 12, 13, 14, 10 };
-                case 14:
-                    return new[] { 6, 2, 8, 4, 5 };
-                case 15:
-                    return new[] { 6, 12, 8, 14, 15 };
-                case 16:
-                    return new[] { 1, 7, 8, 14, 15 };
-                case 17:
-                    return new[] { 11, 7, 8, 4, 5 };
-                case 18:
-                    return new[] { 6, 2, 13, 9, 10 };
-                case 19:
-                    return new[] { 6, 12, 3, 9, 10 };
-                case 20:
-                    return new[] { 1, 7, 13, 14, 15 };
-                case 21:
-                    return new[] { 11, 7, 3, 4, 5 };
-                case 22:
-                    return new[] { 1, 12, 3, 9, 15 };
-                case 23:
-                    return new[] { 11, 2, 13, 9, 5 };
-                case 24:
-                    return new[] { 1, 12, 8, 4, 10 };
-                case 25:
-                    return new[] { 11, 2, 8, 14, 10 };
-                case 26:
-                    return new[] { 1, 12, 13, 4, 5 };
-                case 27:
-                    return new[] { 11, 2, 3, 14, 15 };
-                case 28:
-                    return new[] { 6, 7, 8, 4, 5 };
-                case 29:
-                    return new[] { 6, 7, 8, 14, 15 };
-                case 30:
-                    return new[] { 1, 12, 13, 14, 15 };
-                default: return new int[] { };
-
-            }
-        }
-
-
-        private decimal GetWin(string symbol, int match, decimal bet)
-        {
-            var odds = GetOddsTable().Where(g => g.Symbol == symbol);
-
-            switch (match)
-            {
-                case 5:
-                    return odds.First().FiveKind * bet;
-                case 4:
-                    return odds.First().FourKind * bet;
-                case 3:
-                    return odds.First().ThreeKind * bet;
-                default: return 0;
-            }
-        }
-
-        private List<Odds> GetOddsTable()
-        {
-            return new List<Odds>()
-            {
-                new Odds() { Symbol =  "S0", FiveKind = 60, FourKind = 30, ThreeKind = 5, TwoKind = 0 },
-                new Odds() { Symbol =  "S1", FiveKind = 80, FourKind = 30, ThreeKind = 10, TwoKind = 0 },
-                new Odds() { Symbol =  "S2", FiveKind = 80, FourKind = 30, ThreeKind = 10, TwoKind = 0 },
-                new Odds() { Symbol =  "S3", FiveKind = 100, FourKind = 40, ThreeKind = 20, TwoKind = 0 },
-                new Odds() { Symbol =  "S4", FiveKind = 130, FourKind = 40, ThreeKind = 20, TwoKind = 0 },
-                new Odds() { Symbol =  "S5", FiveKind = 150, FourKind = 50, ThreeKind = 30, TwoKind = 0 },
-                new Odds() { Symbol =  "S6", FiveKind = 200, FourKind = 60, ThreeKind = 30, TwoKind = 0 },
-                new Odds() { Symbol =  "S7", FiveKind = 1000, FourKind = 300, ThreeKind = 50, TwoKind = 0 },
-            };
         }
 
         #endregion
