@@ -7,9 +7,10 @@ namespace SlotAPI.Models
 {
     public class ReelResult
     {
-        public int Position { get; set; }
+        public int WheelNumber { get; set; }
+        public int WheelIndex { get; set; }
         public string Symbol { get; set; }
-        public int Order { get; set; }
-        public int ReelNumber { get; set; }
+        public int SymbolIndex { get; set; }
+        
     }
 }

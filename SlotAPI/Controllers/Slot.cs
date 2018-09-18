@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Linq;
+using Microsoft.AspNetCore.Mvc;
 using SlotAPI.Domains;
 using SlotAPI.Models;
 
@@ -67,7 +68,9 @@ namespace SlotAPI.Controllers
 
             var reelResults = _game.Spin();
 
-            var errorMessage = _game.CheckIfPlayerWin(reelResults, spinRequest.Bet, spinRequest.PlayerId);
+            //var errorMessage = _game.CheckIfPlayerWin(reelResults, spinRequest.Bet, spinRequest.PlayerId);
+
+            var errorMessage = new BaseResponse();
 
             var transaction = string.Empty;
             decimal balance = -1;
@@ -83,7 +86,8 @@ namespace SlotAPI.Controllers
                 ErrorMessage = errorMessage.ErrorMessage,
                 Balance = balance,
                 Transaction = transaction,
-                Success = !string.IsNullOrEmpty(transaction)
+                Success = !string.IsNullOrEmpty(transaction),
+                SpinResult = reelResults.OrderBy(r => r.WheelNumber).ToList()
             };
 
             return Ok(response);

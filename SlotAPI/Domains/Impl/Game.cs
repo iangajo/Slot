@@ -8,6 +8,12 @@ using ReelResult = SlotAPI.Models.ReelResult;
 
 namespace SlotAPI.Domains.Impl
 {
+
+    public class Wheels
+    {
+        public List<List<int>> Wheel { get; set; }
+    }
+
     public class Game : IGame
     {
         private const int MaxLine = 25;
@@ -21,6 +27,20 @@ namespace SlotAPI.Domains.Impl
         private readonly IStatisticsDataStore _statisticsDataStore;
         private readonly IWin _win;
 
+        //Initialize the wheel
+        readonly Wheels wheels = new Wheels()
+        {
+            Wheel = new List<List<int>>()
+            {
+                new List<int>(){ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 },
+                new List<int>(){ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 },
+                new List<int>(){ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 },
+                new List<int>(){ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 },
+                new List<int>(){ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 },
+            }
+
+        };
+
         public Game(IReel reel, ITransactionHistoryDataStore transactionHistory, IAccountCreditsDataStore accountCredits, IStatisticsDataStore statisticsDataStore, IWin win)
         {
             _reel = reel;
@@ -30,18 +50,150 @@ namespace SlotAPI.Domains.Impl
             _win = win;
         }
 
-        public List<ReelResult> Spin()
+
+
+        private List<ReelResult> SpinVer2()
         {
-            var reelResults = new List<ReelResult>();
-
-            for (var i = 1; i < MaxReel + 1; i++)
+            List<ReelResult> spinResult = new List<ReelResult>();
+            
+            //do spin per wheel
+            for (int i = 0; i < MaxReel; i++)
             {
-                var r = DoSpinPerReel(i);
-                reelResults.AddRange(r);
+                var randomNumber = (int)RandomPick();
 
+                //rotate the array based on the roll
+                wheels.Wheel[i] = wheels.Wheel[i].Skip(randomNumber).Concat(wheels.Wheel[i].Take(randomNumber))
+                    .ToList();
+            }
+            
+            //Pick top 3 for each wheel
+            //to create the 3x5 slots
+            for (int i = 0; i < MaxReel; i++)
+            {
+                var top3 = wheels.Wheel[i].Take(3).ToList();
+                var position = 1 + i;
+                foreach (var item in top3)
+                {
+                    spinResult.Add(new ReelResult()
+                    {
+                        Symbol = _reel.GetReelStrips(i + 1).First(r => r.Id == item).Symbol, // get symbol based on symbol index
+                        SymbolIndex = item,
+                        WheelIndex = position,
+                        WheelNumber = i + 1
+                    });
+
+                    position += 5;
+                }
+               
             }
 
-            return reelResults;
+            CheckWin(spinResult, wheels, 1, 10);
+            
+
+            return spinResult;
+        }
+
+        private List<ReelResult> CheckWin(List<ReelResult> spinResults, Wheels wheels, int playerId, decimal bet)
+        {
+            var spinBonus = _accountCredits.GetPlayerSpinBonus(playerId);
+
+            if (spinBonus > 0) { bet = 1;  _accountCredits.DebitBonusSpin(playerId); }
+            else _accountCredits.Debit(playerId, bet);
+
+            var isCascade = false;
+
+            Cascade:
+            //check if the slot has winning combinations
+            var winResults = CheckIfThereMatch(spinResults, bet, GenerateGameId(), isCascade, playerId);
+
+            if (winResults.Any())
+            {
+                for (var wheelNumber = 0; wheelNumber < MaxReel; wheelNumber++)
+                {
+                    var number = (wheelNumber + 1);
+                    var winnerSymbol = winResults.Where(w => w.ReelNumber == number).Select(s => new
+                    {
+                       Symbol = s.Symbol,
+                       SymbolIndex = s.Order,
+                       WheelIndex = s.Position,
+                       WheelNumber = s.ReelNumber
+
+                    }).ToList().Distinct();
+
+                    foreach (var winner in winnerSymbol)
+                    {
+                        wheels.Wheel[wheelNumber].Remove(winner.SymbolIndex);
+                    }
+
+                    //reverse the array to get the symbol to cascade
+                     wheels.Wheel[wheelNumber].Reverse();
+
+                    var cascadedSymbols = wheels.Wheel[wheelNumber].Take(winnerSymbol.Count()).ToList();
+
+                    //revert back the array
+                    wheels.Wheel[wheelNumber].Reverse();
+
+                    foreach (var item in cascadedSymbols)
+                    {
+                        wheels.Wheel[wheelNumber] = wheels.Wheel[wheelNumber].Skip(wheels.Wheel[wheelNumber].Count - cascadedSymbols.Count)
+                            .Concat(wheels.Wheel[wheelNumber].Take(wheels.Wheel[wheelNumber].Count - cascadedSymbols.Count)).ToList();
+                    }
+                    
+                    //remove winner symbol in spinResult
+                    spinResults.RemoveAll(s => s.WheelNumber == number && winnerSymbol.Any(a => a.Symbol == s.Symbol));
+
+                    //create temporary list to hold the cascaded symbol
+                    var holder = new List<ReelResult>();
+
+                    //add cascaded symbol to the slot
+                    foreach (var item in cascadedSymbols)
+                    {
+                        holder.Add(new ReelResult()
+                        {
+                            Symbol = _reel.GetReelStrips(number).First(r => r.Id == item).Symbol,
+                            SymbolIndex = item,
+                            WheelNumber = number
+                        });
+                    }
+
+                    //get remaining symbols in current reel
+                    var remainingReel = spinResults.Where(s => s.WheelNumber == number).ToList();
+
+                    //add remaining symbol to holder
+                    holder.AddRange(remainingReel);
+
+                    //reindex the holder
+                    var positionIndex = number;
+                    holder.ForEach(s =>
+                    {
+                        s.WheelIndex = positionIndex;
+                        positionIndex += 5;
+                    });
+
+                    spinResults.RemoveAll(s => s.WheelNumber == number);
+                    spinResults.AddRange(holder);
+                    isCascade = true;
+                    goto Cascade;
+                }
+            }
+
+            return new List<ReelResult>();
+        }
+
+        public List<ReelResult> Spin()
+        {
+          return  SpinVer2();
+
+            //var reelResults = new List<ReelResult>();
+
+            //for (var i = 1; i < MaxReel + 1; i++)
+            //{
+            //    var r = DoSpinPerReel(i);
+            //    reelResults.AddRange(r);
+
+            //}
+
+            //return reelResults;
         }
 
         public string GenerateGameId()
@@ -98,7 +250,7 @@ namespace SlotAPI.Domains.Impl
                         if (winnerReelSymbolCount == 0) continue;
 
                         //Get Minimum order  of the reel
-                        var minimumOrder = spinResults.First(s => s.ReelNumber == reelNumber && s.Position == number).Order;
+                        var minimumOrder = spinResults.First(s => s.WheelNumber == reelNumber && s.WheelIndex == number).SymbolIndex;
 
                         var stepBackRange = 1;
 
@@ -117,8 +269,8 @@ namespace SlotAPI.Domains.Impl
 
                         List<ReelStrip> reelStripsRange = null;
 
-                        reelStripsRange = minimumOrder < stepBackRange ? 
-                            reelStrip.Where(r => r.Id < minimumOrder || r.Id >= stepBackRange).ToList() : 
+                        reelStripsRange = minimumOrder < stepBackRange ?
+                            reelStrip.Where(r => r.Id < minimumOrder || r.Id >= stepBackRange).ToList() :
                             reelStrip.Where(r => r.Id >= stepBackRange && r.Id < minimumOrder).ToList();
 
                         var tempSpinResult = new List<ReelResult>();
@@ -129,24 +281,24 @@ namespace SlotAPI.Domains.Impl
                         {
                             tempSpinResult.Add(new ReelResult()
                             {
-                                Position = position,
-                                Order = reel.Id,
+                                WheelIndex = position,
+                                SymbolIndex = reel.Id,
                                 Symbol = reel.Symbol,
-                                ReelNumber = number
+                                WheelNumber = number
                             });
                             position += 5;
                         }
-                        
-                        var remainingReels = spinResults.Where(r => r.ReelNumber == number && !winnerReelSymbol.Select(w => w.Order).Contains(r.Order));
+
+                        var remainingReels = spinResults.Where(r => r.WheelNumber == number && !winnerReelSymbol.Select(w => w.Order).Contains(r.SymbolIndex));
 
                         foreach (var remainingReel in remainingReels)
                         {
 
                             tempSpinResult.Add(new ReelResult()
                             {
-                                Position = position,
-                                Order = remainingReel.Order,
-                                ReelNumber = number,
+                                WheelIndex = position,
+                                SymbolIndex = remainingReel.SymbolIndex,
+                                WheelNumber = number,
                                 Symbol = remainingReel.Symbol
                             });
 
@@ -154,7 +306,7 @@ namespace SlotAPI.Domains.Impl
                         }
 
 
-                        spinResults.RemoveAll(s => s.ReelNumber == number);
+                        spinResults.RemoveAll(s => s.WheelNumber == number);
 
                         spinResults.AddRange(tempSpinResult);
 
@@ -187,10 +339,10 @@ namespace SlotAPI.Domains.Impl
             {
                 reelResultPositions.Add(new ReelResult()
                 {
-                    ReelNumber = reelNumber,
-                    Position = reelNo,
+                    WheelNumber = reelNumber,
+                    WheelIndex = reelNo,
                     Symbol = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Symbol,
-                    Order = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Id
+                    SymbolIndex = reelStrips.First(r => r.Id == ((position > MaxLine) ? (position - MaxLine) : position)).Id
                 });
 
                 reelNo += 5;
@@ -228,12 +380,12 @@ namespace SlotAPI.Domains.Impl
             {
                 var winningCombinations = _win.GetWinningCombinations(i);
 
-                var result = spinResult.Where(s => winningCombinations.Contains(s.Position)).ToList();
+                var result = spinResult.Where(s => winningCombinations.Contains(s.WheelIndex)).ToList();
 
                 foreach (var symbol in _symbols)
                 {
                     var match = 0;
-                    foreach (var item in result)
+                    foreach (var item in result.OrderBy(r => r.WheelNumber))
                     {
                         if (item.Symbol == symbol)
                         {
@@ -251,9 +403,9 @@ namespace SlotAPI.Domains.Impl
                         tempReelWinResults.Add(new ReelWinResult()
                         {
                             Symbol = item.Symbol,
-                            Order = item.Order,
-                            Position = item.Position,
-                            ReelNumber = item.ReelNumber,
+                            Order = item.SymbolIndex,
+                            Position = item.WheelIndex,
+                            ReelNumber = item.WheelNumber,
                             WinCombination = i
                         });
                     }

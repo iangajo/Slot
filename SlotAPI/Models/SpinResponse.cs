@@ -9,5 +9,6 @@ namespace SlotAPI.Models
     {
         public string Transaction { get; set; }
         public decimal Balance { get; set; }
+        public List<ReelResult> SpinResult { get; set; }
     }
 }
