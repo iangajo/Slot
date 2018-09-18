@@ -87,7 +87,7 @@ namespace SlotsUnitTest
             mockIAccount.Setup(m => m.GetToken(It.IsAny<int>()))
                 .Returns("MockHeader");
 
-            mockIGame.Setup(m => m.Spin());
+            mockIGame.Setup(m => m.Spin()).Returns(() => new List<ReelResult>());
             mockIGame.Setup(m => m.CheckIfPlayerWin(It.IsAny<List<ReelResult>>(), It.IsAny<decimal>(), It.IsAny<int>())).Returns(new BaseResponse()
             {
                 ErrorMessage = string.Empty,

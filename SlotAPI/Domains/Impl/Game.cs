@@ -55,7 +55,7 @@ namespace SlotAPI.Domains.Impl
         private List<ReelResult> SpinVer2()
         {
             List<ReelResult> spinResult = new List<ReelResult>();
-            
+
             //do spin per wheel
             for (int i = 0; i < MaxReel; i++)
             {
@@ -65,7 +65,7 @@ namespace SlotAPI.Domains.Impl
                 wheels.Wheel[i] = wheels.Wheel[i].Skip(randomNumber).Concat(wheels.Wheel[i].Take(randomNumber))
                     .ToList();
             }
-            
+
             //Pick top 3 for each wheel
             //to create the 3x5 slots
             for (int i = 0; i < MaxReel; i++)
@@ -84,11 +84,11 @@ namespace SlotAPI.Domains.Impl
 
                     position += 5;
                 }
-               
+
             }
 
             CheckWin(spinResult, wheels, 1, 10);
-            
+
             return spinResult;
         }
 
@@ -96,7 +96,7 @@ namespace SlotAPI.Domains.Impl
         {
             var spinBonus = _accountCredits.GetPlayerSpinBonus(playerId);
 
-            if (spinBonus > 0) { bet = 1;  _accountCredits.DebitBonusSpin(playerId); }
+            if (spinBonus > 0) { bet = 1; _accountCredits.DebitBonusSpin(playerId); }
             else _accountCredits.Debit(playerId, bet);
 
             var isCascade = false;
@@ -112,10 +112,10 @@ namespace SlotAPI.Domains.Impl
                     var wheelNumber = (i + 1);
                     var winnerSymbol = winResults.Where(w => w.ReelNumber == wheelNumber).Select(s => new
                     {
-                       Symbol = s.Symbol,
-                       SymbolIndex = s.Order,
-                       WheelIndex = s.Position,
-                       WheelNumber = s.ReelNumber
+                        Symbol = s.Symbol,
+                        SymbolIndex = s.Order,
+                        WheelIndex = s.Position,
+                        WheelNumber = s.ReelNumber
 
                     }).ToList().Distinct();
 
@@ -125,16 +125,17 @@ namespace SlotAPI.Domains.Impl
                     }
 
                     //reverse the array to get the symbol to cascade
-                     wheels.Wheel[i].Reverse();
-
+                    wheels.Wheel[i].Reverse();
+                    
+                    //get the index to be cascaded
                     var cascadedSymbols = wheels.Wheel[i].Take(winnerSymbol.Count()).ToList();
 
                     //revert back the array
                     wheels.Wheel[i].Reverse();
 
-                    var cascadeCount = (wheels.Wheel[i].Count - cascadedSymbols.Count);
-                    cascadedSymbols.ForEach(c => { wheels.Wheel[i] = wheels.Wheel[i].Skip(cascadeCount).Concat(wheels.Wheel[i].Take(cascadeCount)).ToList(); });
-                    
+                    //Cascade the array
+                    wheels.Wheel[i] = wheels.Wheel[i].Skip(wheels.Wheel[i].Count - cascadedSymbols.Count).Concat(wheels.Wheel[i].Take(wheels.Wheel[i].Count - cascadedSymbols.Count)).ToList();
+
                     //remove winner symbol in spinResult
                     spinResults.RemoveAll(s => s.WheelNumber == wheelNumber && winnerSymbol.Any(a => a.Symbol == s.Symbol));
 
@@ -183,7 +184,7 @@ namespace SlotAPI.Domains.Impl
 
         public List<ReelResult> Spin()
         {
-          return  SpinVer2();
+            return SpinVer2();
 
             //var reelResults = new List<ReelResult>();
 
