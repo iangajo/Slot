@@ -89,7 +89,6 @@ namespace SlotAPI.Domains.Impl
 
             CheckWin(spinResult, wheels, 1, 10);
             
-
             return spinResult;
         }
 
@@ -102,16 +101,16 @@ namespace SlotAPI.Domains.Impl
 
             var isCascade = false;
 
-            Cascade:
+            ReCheckForWin:
             //check if the slot has winning combinations
             var winResults = CheckIfThereMatch(spinResults, bet, GenerateGameId(), isCascade, playerId);
 
             if (winResults.Any())
             {
-                for (var wheelNumber = 0; wheelNumber < MaxReel; wheelNumber++)
+                for (var i = 0; i < MaxReel; i++)
                 {
-                    var number = (wheelNumber + 1);
-                    var winnerSymbol = winResults.Where(w => w.ReelNumber == number).Select(s => new
+                    var wheelNumber = (i + 1);
+                    var winnerSymbol = winResults.Where(w => w.ReelNumber == wheelNumber).Select(s => new
                     {
                        Symbol = s.Symbol,
                        SymbolIndex = s.Order,
@@ -122,25 +121,22 @@ namespace SlotAPI.Domains.Impl
 
                     foreach (var winner in winnerSymbol)
                     {
-                        wheels.Wheel[wheelNumber].Remove(winner.SymbolIndex);
+                        wheels.Wheel[i].Remove(winner.SymbolIndex);
                     }
 
                     //reverse the array to get the symbol to cascade
-                     wheels.Wheel[wheelNumber].Reverse();
+                     wheels.Wheel[i].Reverse();
 
-                    var cascadedSymbols = wheels.Wheel[wheelNumber].Take(winnerSymbol.Count()).ToList();
+                    var cascadedSymbols = wheels.Wheel[i].Take(winnerSymbol.Count()).ToList();
 
                     //revert back the array
-                    wheels.Wheel[wheelNumber].Reverse();
+                    wheels.Wheel[i].Reverse();
 
-                    foreach (var item in cascadedSymbols)
-                    {
-                        wheels.Wheel[wheelNumber] = wheels.Wheel[wheelNumber].Skip(wheels.Wheel[wheelNumber].Count - cascadedSymbols.Count)
-                            .Concat(wheels.Wheel[wheelNumber].Take(wheels.Wheel[wheelNumber].Count - cascadedSymbols.Count)).ToList();
-                    }
+                    var cascadeCount = (wheels.Wheel[i].Count - cascadedSymbols.Count);
+                    cascadedSymbols.ForEach(c => { wheels.Wheel[i] = wheels.Wheel[i].Skip(cascadeCount).Concat(wheels.Wheel[i].Take(cascadeCount)).ToList(); });
                     
                     //remove winner symbol in spinResult
-                    spinResults.RemoveAll(s => s.WheelNumber == number && winnerSymbol.Any(a => a.Symbol == s.Symbol));
+                    spinResults.RemoveAll(s => s.WheelNumber == wheelNumber && winnerSymbol.Any(a => a.Symbol == s.Symbol));
 
                     //create temporary list to hold the cascaded symbol
                     var holder = new List<ReelResult>();
@@ -150,34 +146,39 @@ namespace SlotAPI.Domains.Impl
                     {
                         holder.Add(new ReelResult()
                         {
-                            Symbol = _reel.GetReelStrips(number).First(r => r.Id == item).Symbol,
+                            Symbol = _reel.GetReelStrips(wheelNumber).First(r => r.Id == item).Symbol,
                             SymbolIndex = item,
-                            WheelNumber = number
+                            WheelNumber = wheelNumber
                         });
                     }
 
                     //get remaining symbols in current reel
-                    var remainingReel = spinResults.Where(s => s.WheelNumber == number).ToList();
+                    var remainingReel = spinResults.Where(s => s.WheelNumber == wheelNumber).ToList();
 
                     //add remaining symbol to holder
                     holder.AddRange(remainingReel);
 
                     //reindex the holder
-                    var positionIndex = number;
+                    var positionIndex = wheelNumber;
                     holder.ForEach(s =>
                     {
                         s.WheelIndex = positionIndex;
                         positionIndex += 5;
                     });
 
-                    spinResults.RemoveAll(s => s.WheelNumber == number);
+                    //Remove all the items for specific wheelNumber
+                    spinResults.RemoveAll(s => s.WheelNumber == wheelNumber);
+
+                    //Added the cascaded reel to slots
                     spinResults.AddRange(holder);
+
                     isCascade = true;
-                    goto Cascade;
+
+                    goto ReCheckForWin;
                 }
             }
 
-            return new List<ReelResult>();
+            return spinResults;
         }
 
         public List<ReelResult> Spin()
