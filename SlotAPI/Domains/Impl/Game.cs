@@ -111,7 +111,7 @@ namespace SlotAPI.Domains.Impl
                 // If still winning, (Winning symbols were deleted in the 'CheckWin' function.)
                 // Wheel[i] array were re-arrange because we deleted some items (winning symbol)
                 // Get the indices in the array (top 3)
-                // Repopulate the slots array with the new symbols / retain the not winning symbol
+                // Repopulate the slots array with the new symbols / retain the not winning symbol (Cascade)
                 #region Example
                 // As we spin the array will move base on the roll.
                 // example: wheel1 array is { 8, 7, 6, 5, 4... }
@@ -119,7 +119,7 @@ namespace SlotAPI.Domains.Impl
                 // let say the winning line is '1' a straight line (array [1,0], [1,1], [1,2], [1,3], [1,4])
                 // in our wheel1 the winning line is index 7. compute the win amount in CheckWin function and we will delete the index 7 in wheel1 array.
                 // remaining wheel1 array will be { 8, 6, 5, 4, 3... }
-                // repopulate the slot array, in wheel1 will be { 5, 6, 8 }
+                // repopulate the slot array, in wheel1 will be { 5, 6, 8 } -(cascaded symbols)
                 #endregion
                 for (var line = 0; line < 3; line++)
                 {
