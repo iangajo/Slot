@@ -54,15 +54,26 @@ namespace SlotAPI.Domains.Impl
 
         #region PrivateMethods
 
-        private uint RandomPick()
+        private byte RandomPick()
         {
             var rng = new RNGCryptoServiceProvider();
-            var byteArray = new byte[25];
-            rng.GetBytes(byteArray);
+            var numberOfSymbols = new int[25];
+            var randomNumber = new byte[1];
 
-            var randomInteger = BitConverter.ToUInt32(byteArray, 0);
+            do
+            {
+                rng.GetBytes(randomNumber);
 
-            return (randomInteger % 25) + 1;
+            } while (!IsFairSpin(randomNumber[0], (byte) numberOfSymbols.Length));            
+
+            return (byte)((randomNumber[0] % (byte)numberOfSymbols.Length) + 1);
+        }
+
+        private bool IsFairSpin(byte spin, byte numberOfSymbols)
+        {
+            int fullSetsOfValues = Byte.MaxValue / numberOfSymbols;
+
+            return spin < numberOfSymbols * fullSetsOfValues;
         }
 
         private string[,] Spin(int playerId, decimal betAmount, string gameId)
