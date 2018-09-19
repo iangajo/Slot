@@ -10,13 +10,14 @@ namespace SlotAPI.Domains.Impl
 
     public class Game : IGame
     {
-        private const int MaxReel = 5;        
+        private const int MaxReel = 5;
 
         private readonly ITransactionHistoryDataStore _transactionHistory;
         private readonly IReel _reel;
         private readonly IAccountCreditsDataStore _accountCredits;
         private readonly IStatisticsDataStore _statisticsDataStore;
         private readonly IWin _win;
+        private readonly string[] _symbols = { "S7", "S6", "S5", "S4", "S3", "S2", "S1", "S0" };
 
         //Initialize the wheel
         readonly Wheels _wheels = new Wheels()
@@ -56,7 +57,7 @@ namespace SlotAPI.Domains.Impl
         private uint RandomPick()
         {
             var rng = new RNGCryptoServiceProvider();
-            var byteArray = new byte[4];
+            var byteArray = new byte[25];
             rng.GetBytes(byteArray);
 
             var randomInteger = BitConverter.ToUInt32(byteArray, 0);
@@ -78,18 +79,28 @@ namespace SlotAPI.Domains.Impl
             }
 
             var isCascaded = false;
+            var bonusSpin = _accountCredits.GetPlayerSpinBonus(playerId);
 
+            if (bonusSpin > 0)
+            {
+                _accountCredits.DebitBonusSpin(playerId);
+                betAmount = 1;
+            }
+            else
+            {
+                _accountCredits.Debit(playerId, betAmount);
+            }
+            
             Cascade:
 
             for (var i = 0; i < 3; i++)
             {
-                for (int j = 0; j < 5; j++)
+                for (var j = 0; j < 5; j++)
                 {
                     var index = _wheels.Wheel[j].Skip(2 - i).First();
                     var symbol = _reel.GetReelWheel(j).First(r => r.Id == index).Symbol;
 
                     slots[i, j] = symbol;
-
                 }
             }
 
@@ -105,63 +116,72 @@ namespace SlotAPI.Domains.Impl
 
         private bool CheckWin(string[,] slots, int playerId, bool cascaded, decimal betAmount, string gameId)
         {
-            var winSymbols = new List<string>();
-            var tempSymbols = new List<string>();
-            for (var i = 1; i <= 30; i++)
+            var winArrayIndices = new List<string>();
+            var tempArrayIndices = new List<string>();
+
+            for (var i = 1; i <= 30; i++) //paylines
             {
-                var matchCounter = 1;
                 var winLines = _win.PayLines(i);
-                var previousSymbol = string.Empty;
-                tempSymbols.Clear();
-                foreach (var item in winLines)
+                tempArrayIndices.Clear();
+
+                foreach (var symbol in _symbols) //symbols
                 {
-                    var values = item.Split(',');
-
-                    var col = Convert.ToInt32(values[0]);
-                    var row = Convert.ToInt32(values[1]);
-
-                    var currentSymbol = slots[col, row];
-
-                    tempSymbols.Add($"{col},{row}");
-
-                    if (!string.IsNullOrEmpty(previousSymbol))
+                    var matchCounter = 0;
+                    tempArrayIndices.Clear();
+                    foreach (var lines in winLines)//slot results base on payline
                     {
-                        if (previousSymbol == currentSymbol || currentSymbol == "Wild")
-                        {
-                            matchCounter += 1;
-                        }
-                        else
-                        {
-                            if (matchCounter <= 2) tempSymbols.Clear();
-                            break;
-                        }
+                        var values = lines.Split(',');
+
+                        var col = Convert.ToInt32(values[0]);
+                        var row = Convert.ToInt32(values[1]);
+
+                        var currentSymbol = slots[col, row];
+
+                        tempArrayIndices.Add($"{col},{row}");
+
+                        if (currentSymbol == symbol || currentSymbol == "Wild") matchCounter += 1;
+                        else break;
+
                     }
 
-                    previousSymbol = currentSymbol;
-                }
+                    if (matchCounter > 2)
+                    {
+                        winArrayIndices.AddRange(tempArrayIndices);
+                        var winAmount = _win.GetWin(symbol, matchCounter, betAmount);
 
-                if (matchCounter > 2)
-                {
-                    winSymbols.AddRange(tempSymbols);
+                        _accountCredits.Credit(playerId, winAmount);
 
-                    var winAmount = _win.GetWin(previousSymbol, matchCounter, betAmount);
+                        _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, symbol);
 
-                    _accountCredits.Credit(playerId, winAmount);
-
-                    _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, previousSymbol);
-
-                    _statisticsDataStore.SymbolStat(previousSymbol, matchCounter);
-                    _statisticsDataStore.PayLineStat(i);
-                }
-
-                if (!cascaded)
-                {
-                    _transactionHistory.AddTransactionHistory(0, playerId, "Lose", gameId, i, previousSymbol);
+                        _statisticsDataStore.SymbolStat(symbol, matchCounter);
+                        _statisticsDataStore.PayLineStat(i);
+                    }
                 }
             }
 
+            if (!winArrayIndices.Any() && !cascaded)
+            {
+                _transactionHistory.AddTransactionHistory(0, playerId, "Lose", gameId, 0, string.Empty);
+            }
+
+            //check for bonuses
+            var bonusCounter = 0;
+            for (var i = 0; i < 3; i++)
+            {
+                for (var j = 0; j < 5; j++)
+                {
+                    var symbol = slots[i, j];
+                    if (symbol == "Bonus")
+                    {
+                        bonusCounter += 1;
+                    }
+                }
+            }
+
+            if (bonusCounter >= 3) _accountCredits.CreditBonusSpin(playerId);
+
             //remove winning lines
-            foreach (var item in winSymbols.Distinct())
+            foreach (var item in winArrayIndices.Distinct())
             {
                 var values = item.Split(',');
 
@@ -173,7 +193,7 @@ namespace SlotAPI.Domains.Impl
                 _wheels.Wheel[row].Remove(index);
             }
 
-            return winSymbols.Any();
+            return winArrayIndices.Any();
         }
 
         #endregion
