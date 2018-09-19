@@ -104,10 +104,18 @@ namespace SlotAPI.Domains.Impl
 
             do
             {
-                //Populate the slots based on the spin per wheel...
+                // Populate the slots based on the spin per wheel...
                 //
-                //If still winning, get the remaining items in the string array (top 3). winning symbols were deleted in the 'CheckWin' function.
-                //It will repopulate the slots array with the new symbols / retain the not winning symbol
+                // If still winning, (Winning symbols were deleted in the 'CheckWin' function.) Get the remaining symbol index in the array
+                // It will repopulate the slots array with the new symbols / retain the not winning symbol
+                #region Example
+                // wheel1 array is { 8, 7, 6, 5, 4... }
+                // get the top 3 as line in array [0,0], [1,0] [2,0] = (6, 7, 8)
+                // let say the winning line is '1' a straight line (array [1,0], [1,1], [1,2], [1,3], [1,4])
+                // in our wheel1 the winning line is index 7. compute the win amount in CheckWin function and we will delete the index 7 in wheel1 array.
+                // remaining wheel1 array will be { 8, 6, 5, 4... }
+                // repopulate the slot array, in wheel1 will be { 5, 6, 8 }
+                #endregion
                 for (var i = 0; i < 3; i++)
                 {
                     for (var j = 0; j < 5; j++)
