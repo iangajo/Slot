@@ -66,28 +66,27 @@ namespace SlotAPI.Controllers
                 return Unauthorized();
             }
 
-            var reelResults = _game.Spin();
+            var playerId = spinRequest.PlayerId;
+            var betAmount = spinRequest.Bet;
 
-            //var errorMessage = _game.CheckIfPlayerWin(reelResults, spinRequest.Bet, spinRequest.PlayerId);
+
+            var slots = _game.Spin(playerId, betAmount);
 
             var errorMessage = new BaseResponse();
 
             var transaction = string.Empty;
             decimal balance = -1;
 
-            if (string.IsNullOrEmpty(errorMessage.ErrorMessage))
-            {
-                transaction = _transaction.GetLastTransactionHistoryByPlayer(spinRequest.PlayerId).Transaction;
-                balance = _account.GetBalance(spinRequest.PlayerId);
-            }
-
+            transaction = _transaction.GetLastTransactionHistoryByPlayer(spinRequest.PlayerId).Transaction;
+            balance = _account.GetBalance(spinRequest.PlayerId);
+            
             var response = new SpinResponse()
             {
                 ErrorMessage = errorMessage.ErrorMessage,
                 Balance = balance,
                 Transaction = transaction,
                 Success = !string.IsNullOrEmpty(transaction),
-                SpinResult = reelResults.OrderBy(r => r.WheelNumber).ToList()
+                SpinResult = slots
             };
 
             return Ok(response);

@@ -8,10 +8,10 @@ namespace SlotAPI.Domains
 {
     public interface IWin
     {
-        int[] GetWinningCombinations(int winningCombination);
-
         decimal GetWin(string symbol, int match, decimal bet);
 
         List<Odds> GetOddsTable();
+
+        string[] PayLines(int win);
     }
 }

@@ -5,6 +5,6 @@ namespace SlotAPI.Domains
 {
     public interface IReel
     {
-        List<ReelStrip> GetReelStrips(int reelNumber);
+        List<ReelStrip> GetReelWheel(int reelNumber);
     }
 }

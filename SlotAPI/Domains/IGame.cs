@@ -8,11 +8,9 @@ namespace SlotAPI.Domains
 {
     public interface IGame
     {
-        List<ReelResult> Spin();
+        string[,] Spin(int playerId, decimal betAmount);
 
         string GenerateGameId();
-
-        BaseResponse CheckIfPlayerWin(List<ReelResult> spinResults, decimal bet, int playerId);
 
     }
 }

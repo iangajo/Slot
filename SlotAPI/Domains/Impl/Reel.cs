@@ -5,11 +5,11 @@ namespace SlotAPI.Domains.Impl
 {
     public class Reel : IReel
     {
-        public List<ReelStrip> GetReelStrips(int reelNumber)
+      public List<ReelStrip> GetReelWheel(int reelNumber)
         {
             switch (reelNumber)
             {
-                case 1:
+                case 0:
                     return new List<ReelStrip>
                     {
                         new ReelStrip() {Id = 1, Symbol = "S0" },
@@ -38,7 +38,7 @@ namespace SlotAPI.Domains.Impl
                         new ReelStrip() {Id = 24, Symbol = "Bonus "},
                         new ReelStrip() {Id = 25, Symbol = "S0 "}
                     };
-                case 2:
+                case 1:
                     return new List<ReelStrip>
                     {
                         new ReelStrip() {Id = 1, Symbol = "S0" },
@@ -67,7 +67,7 @@ namespace SlotAPI.Domains.Impl
                         new ReelStrip() {Id = 24, Symbol = "S4"},
                         new ReelStrip() {Id = 25, Symbol = "Wild"}
                     };
-                case 3:
+                case 2:
                     return new List<ReelStrip>
                     {
                         new ReelStrip() {Id = 1, Symbol = "S0" },
@@ -96,7 +96,7 @@ namespace SlotAPI.Domains.Impl
                         new ReelStrip() {Id = 24, Symbol = ""},
                         new ReelStrip() {Id = 25, Symbol = ""}
                     };
-                case 4:
+                case 3:
                     return new List<ReelStrip>
                     {
                         new ReelStrip() {Id = 1, Symbol = "S3" },
@@ -125,7 +125,7 @@ namespace SlotAPI.Domains.Impl
                         new ReelStrip() {Id = 24, Symbol = ""},
                         new ReelStrip() {Id = 25, Symbol = ""}
                     };
-                case 5:
+                case 4:
                     return new List<ReelStrip>
                     {
                         new ReelStrip() {Id = 1, Symbol = "S5" },

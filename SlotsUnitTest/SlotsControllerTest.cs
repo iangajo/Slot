@@ -87,12 +87,7 @@ namespace SlotsUnitTest
             mockIAccount.Setup(m => m.GetToken(It.IsAny<int>()))
                 .Returns("MockHeader");
 
-            mockIGame.Setup(m => m.Spin()).Returns(() => new List<ReelResult>());
-            mockIGame.Setup(m => m.CheckIfPlayerWin(It.IsAny<List<ReelResult>>(), It.IsAny<decimal>(), It.IsAny<int>())).Returns(new BaseResponse()
-            {
-                ErrorMessage = string.Empty,
-                Success = true
-            });
+            mockIGame.Setup(m => m.Spin(It.IsAny<int>(), It.IsAny<decimal>())).Returns(new string[3,5]);
 
             mockITransaction.Setup(m => m.GetLastTransactionHistoryByPlayer(It.IsAny<int>())).Returns(() =>
                 new TransactionHistory()
