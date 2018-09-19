@@ -161,7 +161,7 @@ namespace SlotAPI.Domains.Impl
 
             if (!winArrayIndices.Any() && !cascaded)
             {
-                _transactionHistory.AddTransactionHistory(0, playerId, "Lose", gameId, 0, string.Empty);
+                _transactionHistory.AddTransactionHistory(betAmount, playerId, "Lose", gameId, 0, string.Empty);
             }
 
             //check for bonuses
