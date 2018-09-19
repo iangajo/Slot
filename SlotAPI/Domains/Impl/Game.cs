@@ -64,7 +64,7 @@ namespace SlotAPI.Domains.Impl
             {
                 rng.GetBytes(randomNumber);
 
-            } while (!IsFairSpin(randomNumber[0], (byte) numberOfSymbols.Length));            
+            } while (!IsFairSpin(randomNumber[0], (byte)numberOfSymbols.Length));
 
             return (byte)((randomNumber[0] % (byte)numberOfSymbols.Length) + 1);
         }
@@ -89,7 +89,7 @@ namespace SlotAPI.Domains.Impl
                     .ToList();
             }
 
-            var isCascaded = false;
+            var stillWinning = false;
             var bonusSpin = _accountCredits.GetPlayerSpinBonus(playerId);
 
             if (bonusSpin > 0)
@@ -101,25 +101,29 @@ namespace SlotAPI.Domains.Impl
             {
                 _accountCredits.Debit(playerId, betAmount);
             }
-            
-            Cascade:
 
-            for (var i = 0; i < 3; i++)
+            do
             {
-                for (var j = 0; j < 5; j++)
+                //Populate the slots based on the spin per wheel...
+                //
+                //If still winning, get the remaining items in the string array (top 3). winning symbols were deleted in the 'CheckWin' function.
+                //It will repopulate the slots array with the new symbols / retain the not winning symbol
+                for (var i = 0; i < 3; i++)
                 {
-                    var index = _wheels.Wheel[j].Skip(2 - i).First();
-                    var symbol = _reel.GetReelWheel(j).First(r => r.Id == index).Symbol;
+                    for (var j = 0; j < 5; j++)
+                    {
+                        var index = _wheels.Wheel[j].Skip(2 - i).First();
+                        var symbol = _reel.GetReelWheel(j).First(r => r.Id == index).Symbol;
 
-                    slots[i, j] = symbol;
+                        slots[i, j] = symbol;
+                    }
                 }
-            }
 
-            var hasWin = CheckWin(slots, playerId, isCascaded, betAmount, gameId);
+                var hasWin = CheckWin(slots, playerId, stillWinning, betAmount, gameId);
 
-            isCascaded = hasWin;
+                stillWinning = hasWin;
 
-            if (hasWin) goto Cascade;
+            } while (stillWinning);
 
             return slots;
         }
@@ -191,7 +195,9 @@ namespace SlotAPI.Domains.Impl
 
             if (bonusCounter >= 3) _accountCredits.CreditBonusSpin(playerId);
 
-            //remove winning lines
+            //If there's a winning in the slot symbol..
+            //remove the items in the array.
+            //to repopulate the slots with new symbol.
             foreach (var item in winArrayIndices.Distinct())
             {
                 var values = item.Split(',');
