@@ -56,17 +56,19 @@ namespace SlotAPI.Domains.Impl
 
         private byte RandomPick()
         {
-            var rng = new RNGCryptoServiceProvider();
-            var numberOfSymbols = new int[25];
-            var randomNumber = new byte[1];
-
-            do
+            using (var rng = new RNGCryptoServiceProvider())
             {
-                rng.GetBytes(randomNumber);
+                var numberOfSymbols = new int[25];
+                var randomNumber = new byte[1];
 
-            } while (!IsFairSpin(randomNumber[0], (byte)numberOfSymbols.Length));
+                do
+                {
+                    rng.GetBytes(randomNumber);
 
-            return (byte)((randomNumber[0] % (byte)numberOfSymbols.Length) + 1);
+                } while (!IsFairSpin(randomNumber[0], (byte) numberOfSymbols.Length));
+
+                return (byte) ((randomNumber[0] % (byte) numberOfSymbols.Length) + 1);
+            } //dispose the rng
         }
 
         private bool IsFairSpin(byte spin, byte numberOfSymbols)
@@ -106,8 +108,10 @@ namespace SlotAPI.Domains.Impl
             {
                 // Populate the slots based on the spin per wheel...
                 //
-                // If still winning, (Winning symbols were deleted in the 'CheckWin' function.) Get the remaining symbol index in the array
-                // It will repopulate the slots array with the new symbols / retain the not winning symbol
+                // If still winning, (Winning symbols were deleted in the 'CheckWin' function.)
+                // Wheel[i] array were re-arrange because we deleted some items (winning symbol)
+                // Get the indices in the array (top 3)
+                // Repopulate the slots array with the new symbols / retain the not winning symbol
                 #region Example
                 // As we spin the array will move base on the roll.
                 // example: wheel1 array is { 8, 7, 6, 5, 4... }
@@ -121,14 +125,14 @@ namespace SlotAPI.Domains.Impl
                 {
                     for (var wheel = 0; wheel < 5; wheel++)
                     {
-                        var index = _wheels.Wheel[wheel].Skip(2 - line).First();
-                        var symbol = _reel.GetReelWheel(wheel).First(r => r.Id == index).Symbol;
+                        var index = _wheels.Wheel[wheel].Skip(2 - line).First(); //get symbol index
+                        var symbol = _reel.GetReelWheel(wheel).First(r => r.Id == index).Symbol; //get symbol base on the index
 
-                        slots[line, wheel] = symbol;
+                        slots[line, wheel] = symbol; // assign / reassign the slot symbol
                     }
                 }
 
-                stillWinning = CheckWin(slots, playerId, stillWinning, betAmount, gameId);
+                stillWinning = CheckWin(slots, playerId, stillWinning, betAmount, gameId); //Check if the slot combination has winning combinations
 
             } while (stillWinning);
 
@@ -154,12 +158,12 @@ namespace SlotAPI.Domains.Impl
                     {
                         var values = lines.Split(',');
 
-                        var col = Convert.ToInt32(values[0]);
-                        var row = Convert.ToInt32(values[1]);
+                        var row = Convert.ToInt32(values[0]); //get line
+                        var col = Convert.ToInt32(values[1]); //get wheel
 
-                        var currentSymbol = slots[col, row];
+                        var currentSymbol = slots[row, col];
 
-                        tempArrayIndices.Add($"{col},{row}");
+                        tempArrayIndices.Add($"{row},{col}"); //save the winning symbol
 
                         if (currentSymbol == symbol || currentSymbol == "Wild") matchCounter += 1;
                         else break;
@@ -168,15 +172,15 @@ namespace SlotAPI.Domains.Impl
 
                     if (matchCounter > 2)
                     {
-                        winArrayIndices.AddRange(tempArrayIndices);
-                        var winAmount = _win.GetWin(symbol, matchCounter, betAmount);
+                        winArrayIndices.AddRange(tempArrayIndices); //add the winning symbol to the list of array (as return later)
+                        var winAmount = _win.GetWin(symbol, matchCounter, betAmount); //compute the winning amount base on the number of match and symbol
 
-                        _accountCredits.Credit(playerId, winAmount);
+                        _accountCredits.Credit(playerId, winAmount); //credit the winning amount
 
-                        _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, symbol);
+                        _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, symbol); //add transaction history
 
-                        _statisticsDataStore.SymbolStat(symbol, matchCounter);
-                        _statisticsDataStore.PayLineStat(i);
+                        _statisticsDataStore.SymbolStat(symbol, matchCounter); //add symbol stats
+                        _statisticsDataStore.PayLineStat(i); //add payline stats
                     }
                 }
             }
@@ -202,19 +206,19 @@ namespace SlotAPI.Domains.Impl
 
             if (bonusCounter >= 3) _accountCredits.CreditBonusSpin(playerId);
 
-            //If there's a winning in the slot symbol..
-            //remove the items in the array.
-            //to repopulate the slots with new symbol.
+            //If there's a winning symbol in slot
+            //get the line(3) and wheel(5) (base on the array row and col)
+            //remove the symbol in the array.
             foreach (var item in winArrayIndices.Distinct())
             {
                 var values = item.Split(',');
 
-                var col = Convert.ToInt32(values[0]);
-                var row = Convert.ToInt32(values[1]);
+                var row = Convert.ToInt32(values[0]);
+                var col = Convert.ToInt32(values[1]);
 
-                var index = _wheels.Wheel[row].Skip(col).First();
+                var index = _wheels.Wheel[col].Skip(row).First(); //get the index base on the row and col (array position)
 
-                _wheels.Wheel[row].Remove(index);
+                _wheels.Wheel[col].Remove(index); //remove the item in the array
             }
 
             return winArrayIndices.Any();
