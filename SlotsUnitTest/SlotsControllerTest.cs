@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SlotAPI.Controllers;
+using SlotAPI.DataStores;
 using SlotAPI.Domains;
+using SlotAPI.Domains.Impl;
 using SlotAPI.Models;
 using Xunit;
 

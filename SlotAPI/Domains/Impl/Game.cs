@@ -44,65 +44,15 @@ namespace SlotAPI.Domains.Impl
 
         public string[,] Spin(int playerId, decimal betAmount)
         {
-            return Spin(playerId, betAmount, GenerateGameId());
-        }
+            var gameId = GenerateGameId();
 
-        public string GenerateGameId()
-        {
-            return Guid.NewGuid().ToString();
-        }
-
-        #region PrivateMethods
-
-        private byte RandomPick()
-        {
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                var numberOfSymbols = new int[25];
-                var randomNumber = new byte[1];
-
-                do
-                {
-                    rng.GetBytes(randomNumber);
-
-                } while (!IsFairSpin(randomNumber[0], (byte) numberOfSymbols.Length));
-
-                return (byte) ((randomNumber[0] % (byte) numberOfSymbols.Length) + 1);
-            } //dispose the rng
-        }
-
-        private bool IsFairSpin(byte spin, byte numberOfSymbols)
-        {
-            int fullSetsOfValues = Byte.MaxValue / numberOfSymbols;
-
-            return spin < numberOfSymbols * fullSetsOfValues;
-        }
-
-        private string[,] Spin(int playerId, decimal betAmount, string gameId)
-        {
             var slots = new string[3, 5];
 
-            for (var i = 0; i < MaxReel; i++)
-            {
-                var randomNumber = (int)RandomPick();
-
-                //rotate the array based on the roll
-                _wheels.Wheel[i] = _wheels.Wheel[i].Skip(randomNumber).Concat(_wheels.Wheel[i].Take(randomNumber))
-                    .ToList();
-            }
+            RngSpin();
 
             var stillWinning = false;
-            var bonusSpin = _accountCredits.GetPlayerSpinBonus(playerId);
 
-            if (bonusSpin > 0)
-            {
-                _accountCredits.DebitBonusSpin(playerId);
-                betAmount = 1;
-            }
-            else
-            {
-                _accountCredits.Debit(playerId, betAmount);
-            }
+            CheckIfPlayerHasBonusSpin(ref betAmount, playerId);
 
             do
             {
@@ -139,8 +89,27 @@ namespace SlotAPI.Domains.Impl
             return slots;
         }
 
+        public string GenerateGameId()
+        {
+            return Guid.NewGuid().ToString();
+        }
 
-        private bool CheckWin(string[,] slots, int playerId, bool cascaded, decimal betAmount, string gameId)
+        public void CheckIfPlayerHasBonusSpin(ref decimal betAmount, int playerId)
+        {
+            var bonusSpin = _accountCredits.GetPlayerSpinBonus(playerId);
+
+            if (bonusSpin > 0)
+            {
+                _accountCredits.DebitBonusSpin(playerId);
+                betAmount = 1;
+            }
+            else
+            {
+                _accountCredits.Debit(playerId, betAmount);
+            }
+        }
+
+        public bool CheckWin(string[,] slots, int playerId, bool cascaded, decimal betAmount, string gameId)
         {
             var winArrayIndices = new List<string>();
             var tempArrayIndices = new List<string>();
@@ -156,31 +125,15 @@ namespace SlotAPI.Domains.Impl
                     tempArrayIndices.Clear();
                     foreach (var lines in winLines)//slot results base on payline
                     {
-                        var values = lines.Split(',');
-
-                        var row = Convert.ToInt32(values[0]); //get line
-                        var col = Convert.ToInt32(values[1]); //get wheel
-
-                        var currentSymbol = slots[row, col];
-
-                        tempArrayIndices.Add($"{row},{col}"); //save the winning symbol
-
+                        var currentSymbol = GetSymbol(slots, lines, ref tempArrayIndices);
                         if (currentSymbol == symbol || currentSymbol == "Wild") matchCounter += 1;
                         else break;
-
                     }
 
                     if (matchCounter > 2)
                     {
                         winArrayIndices.AddRange(tempArrayIndices); //add the winning symbol to the list of array (as return later)
-                        var winAmount = _win.GetWin(symbol, matchCounter, betAmount); //compute the winning amount base on the number of match and symbol
-
-                        _accountCredits.Credit(playerId, winAmount); //credit the winning amount
-
-                        _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, i, symbol); //add transaction history
-
-                        _statisticsDataStore.SymbolStat(symbol, matchCounter); //add symbol stats
-                        _statisticsDataStore.PayLineStat(i); //add payline stats
+                        WinLineMatch(matchCounter, symbol, betAmount, playerId, gameId, playerId);
                     }
                 }
             }
@@ -190,6 +143,30 @@ namespace SlotAPI.Domains.Impl
                 _transactionHistory.AddTransactionHistory(betAmount, playerId, "Lose", gameId, 0, string.Empty);
             }
 
+            CheckBonus(slots, playerId);
+
+            //If there's a winning symbol in slot
+            //get the line(3) and wheel(5) (base on the array row and col)
+            //remove the symbol in the array.
+            RemoveSymbolsInTheWheelArray(winArrayIndices);
+
+            return winArrayIndices.Any();
+        }
+
+        public void WinLineMatch(int match, string symbol, decimal betAmount, int playerId, string gameId, int payLine)
+        {
+            var winAmount = _win.GetWin(symbol, match, betAmount); //compute the winning amount base on the number of match and symbol
+
+            _accountCredits.Credit(playerId, winAmount); //credit the winning amount
+
+            _transactionHistory.AddTransactionHistory(winAmount, playerId, "Win", gameId, payLine, symbol); //add transaction history
+
+            _statisticsDataStore.SymbolStat(symbol, match); //add symbol stats
+            _statisticsDataStore.PayLineStat(payLine); //add payline stats
+        }
+
+        public void CheckBonus(string[,] slots, int playerId)
+        {
             //check for bonuses
             var bonusCounter = 0;
             for (var i = 0; i < 3; i++)
@@ -205,10 +182,10 @@ namespace SlotAPI.Domains.Impl
             }
 
             if (bonusCounter >= 3) _accountCredits.CreditBonusSpin(playerId);
+        }
 
-            //If there's a winning symbol in slot
-            //get the line(3) and wheel(5) (base on the array row and col)
-            //remove the symbol in the array.
+        public void RemoveSymbolsInTheWheelArray(List<string> winArrayIndices)
+        {
             foreach (var item in winArrayIndices.Distinct())
             {
                 var values = item.Split(',');
@@ -220,8 +197,58 @@ namespace SlotAPI.Domains.Impl
 
                 _wheels.Wheel[col].Remove(index); //remove the item in the array
             }
+        }
 
-            return winArrayIndices.Any();
+        #region PrivateMethods
+
+        private byte RandomPick()
+        {
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                var numberOfSymbols = new int[25];
+                var randomNumber = new byte[1];
+
+                do
+                {
+                    rng.GetBytes(randomNumber);
+
+                } while (!IsFairSpin(randomNumber[0], (byte)numberOfSymbols.Length));
+
+                return (byte)((randomNumber[0] % (byte)numberOfSymbols.Length) + 1);
+            } //dispose the rng
+        }
+
+        private bool IsFairSpin(byte spin, byte numberOfSymbols)
+        {
+            int fullSetsOfValues = Byte.MaxValue / numberOfSymbols;
+
+            return spin < numberOfSymbols * fullSetsOfValues;
+        }
+
+        private void RngSpin()
+        {
+            for (var i = 0; i < MaxReel; i++)
+            {
+                var randomNumber = (int)RandomPick();
+
+                //rotate the array based on the roll
+                _wheels.Wheel[i] = _wheels.Wheel[i].Skip(randomNumber).Concat(_wheels.Wheel[i].Take(randomNumber))
+                    .ToList();
+            }
+        }
+
+        private string GetSymbol(string[,] slots, string lines, ref List<string> tempData)
+        {
+            var values = lines.Split(',');
+
+            var row = Convert.ToInt32(values[0]); //get line
+            var col = Convert.ToInt32(values[1]); //get wheel
+
+            var currentSymbol = slots[row, col];
+
+            tempData.Add($"{row},{col}"); //save the winning symbol
+
+            return currentSymbol;
         }
 
         #endregion

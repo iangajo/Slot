@@ -12,5 +12,14 @@ namespace SlotAPI.Domains
 
         string GenerateGameId();
 
+        void CheckIfPlayerHasBonusSpin(ref decimal betAmount, int playerId);
+
+        bool CheckWin(string[,] slots, int playerId, bool cascaded, decimal betAmount, string gameId);
+
+        void WinLineMatch(int match, string symbol, decimal betAmount, int playerId, string gameId, int payLine);
+
+        void CheckBonus(string[,] slots, int playerId);
+
+        void RemoveSymbolsInTheWheelArray(List<string> winArrayIndices);
     }
 }
