@@ -111,34 +111,34 @@ namespace SlotAPI.Domains.Impl
 
         public bool CheckIfPlayerHasWinningCombinations(string[,] slots, int playerId, bool cascaded, decimal betAmount, string gameId)
         {
-            var winArrayDimensionList = new List<string>();
-            var temporaryArrayDimensionList = new List<string>();
+            var winnerArrayDimensionList = new List<string>();
+            var temporaryWinnerArrayDimensionList = new List<string>();
 
             for (var payLines = 1; payLines <= 30; payLines++) //paylines
             {
                 var winningPayLine = _win.GetWinningPayLine(payLines);
-                temporaryArrayDimensionList.Clear();
+                temporaryWinnerArrayDimensionList.Clear();
 
                 foreach (var symbol in _symbols) //symbols
                 {
                     var matchCounter = 0;
-                    temporaryArrayDimensionList.Clear();
+                    temporaryWinnerArrayDimensionList.Clear();
                     foreach (var lines in winningPayLine)//slot results base on payline
                     {
-                        var currentSymbol = GetSymbol(slots, lines, ref temporaryArrayDimensionList);
+                        var currentSymbol = GetSymbol(slots, lines, ref temporaryWinnerArrayDimensionList);
                         if (currentSymbol == symbol || currentSymbol == "Wild") matchCounter += 1;
                         else break;
                     }
 
                     if (matchCounter > 2)
                     {
-                        winArrayDimensionList.AddRange(temporaryArrayDimensionList); //add the winning symbol to the list of array (as return later)
+                        winnerArrayDimensionList.AddRange(temporaryWinnerArrayDimensionList); //add the winning symbol to the list of array (as return later)
                         CreditAndRecordWinningCombinations(matchCounter, symbol, betAmount, playerId, gameId, playerId);
                     }
                 }
             }
 
-            if (!winArrayDimensionList.Any() && !cascaded)
+            if (!winnerArrayDimensionList.Any() && !cascaded)
             {
                 _transactionHistory.AddTransactionHistory(betAmount, playerId, "Lose", gameId, 0, string.Empty);
             }
@@ -148,9 +148,9 @@ namespace SlotAPI.Domains.Impl
             //If there's a winning symbol in slot
             //get the line(3) and wheel(5) (base on the array row and col)
             //remove the symbol in the array.
-            RemoveSymbolsInTheWheelArray(winArrayDimensionList);
+            RemoveSymbolsInTheWheelArray(winnerArrayDimensionList);
 
-            return winArrayDimensionList.Any();
+            return winnerArrayDimensionList.Any();
         }
 
         public void CreditAndRecordWinningCombinations(int match, string symbol, decimal betAmount, int playerId, string gameId, int payLine)
