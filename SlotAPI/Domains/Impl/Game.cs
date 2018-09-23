@@ -10,7 +10,7 @@ namespace SlotAPI.Domains.Impl
 
     public class Game : IGame
     {
-        private const int MaxReel = 5;
+        private const int MaxWheelNumber = 5;
 
         private readonly ITransactionHistoryDataStore _transactionHistory;
         private readonly IReel _reel;
@@ -46,9 +46,9 @@ namespace SlotAPI.Domains.Impl
         {
             var gameId = GenerateGameId();
 
-            var slots = new string[3, 5];
+            var activeSlotDimensionArray = new string[3, 5];
 
-            RngSpin();
+            WheelSpin();
 
             var stillWinning = false;
 
@@ -58,7 +58,7 @@ namespace SlotAPI.Domains.Impl
             {
                 // Populate the slots based on the spin per wheel...
                 //
-                // If still winning, (Winning symbols were deleted in the 'CheckWin' function.)
+                // If still winning, (Winning symbols were deleted in the 'CheckIfPlayerHasWinningCombinations' function.)
                 // Wheel[i] array were re-arrange because we deleted some items (winning symbol)
                 // Get the indices in the array (top 3)
                 // Repopulate the slots array with the new symbols / retain the not winning symbol (Cascade)
@@ -67,7 +67,7 @@ namespace SlotAPI.Domains.Impl
                 // example: wheel1 array is { 8, 7, 6, 5, 4... }
                 // get the top 3 as line in array [0,0], [1,0] [2,0] = (6, 7, 8)
                 // let say the winning line is '1' a straight line (array [1,0], [1,1], [1,2], [1,3], [1,4])
-                // in our wheel1 the winning line is index 7. compute the win amount in CheckWin function and we will delete the index 7 in wheel1 array.
+                // in our wheel1 the winning line is index 7. compute the win amount in CheckIfPlayerHasWinningCombinations function and we will delete the index 7 in wheel1 array.
                 // remaining wheel1 array will be { 8, 6, 5, 4, 3... }
                 // repopulate the slot array, in wheel1 will be { 5, 6, 8 } -(cascaded symbols)
                 #endregion
@@ -78,15 +78,15 @@ namespace SlotAPI.Domains.Impl
                         var index = _wheels.Wheel[wheel].Skip(2 - line).First(); //get symbol index
                         var symbol = _reel.GetReelWheel(wheel).First(r => r.Id == index).Symbol; //get symbol base on the index
 
-                        slots[line, wheel] = symbol; // assign / reassign the slot symbol
+                        activeSlotDimensionArray[line, wheel] = symbol; // assign / reassign the slot symbol
                     }
                 }
 
-                stillWinning = CheckWin(slots, playerId, stillWinning, betAmount, gameId); //Check if the slot combination has winning combinations
+                stillWinning = CheckIfPlayerHasWinningCombinations(activeSlotDimensionArray, playerId, stillWinning, betAmount, gameId); //Check if the slot combination has winning combinations
 
             } while (stillWinning);
 
-            return slots;
+            return activeSlotDimensionArray;
         }
 
         public string GenerateGameId()
@@ -109,51 +109,51 @@ namespace SlotAPI.Domains.Impl
             }
         }
 
-        public bool CheckWin(string[,] slots, int playerId, bool cascaded, decimal betAmount, string gameId)
+        public bool CheckIfPlayerHasWinningCombinations(string[,] slots, int playerId, bool cascaded, decimal betAmount, string gameId)
         {
-            var winArrayIndices = new List<string>();
-            var tempArrayIndices = new List<string>();
+            var winArrayDimensionList = new List<string>();
+            var temporaryArrayDimensionList = new List<string>();
 
-            for (var i = 1; i <= 30; i++) //paylines
+            for (var payLines = 1; payLines <= 30; payLines++) //paylines
             {
-                var winLines = _win.PayLines(i);
-                tempArrayIndices.Clear();
+                var winningPayLine = _win.GetWinningPayLine(payLines);
+                temporaryArrayDimensionList.Clear();
 
                 foreach (var symbol in _symbols) //symbols
                 {
                     var matchCounter = 0;
-                    tempArrayIndices.Clear();
-                    foreach (var lines in winLines)//slot results base on payline
+                    temporaryArrayDimensionList.Clear();
+                    foreach (var lines in winningPayLine)//slot results base on payline
                     {
-                        var currentSymbol = GetSymbol(slots, lines, ref tempArrayIndices);
+                        var currentSymbol = GetSymbol(slots, lines, ref temporaryArrayDimensionList);
                         if (currentSymbol == symbol || currentSymbol == "Wild") matchCounter += 1;
                         else break;
                     }
 
                     if (matchCounter > 2)
                     {
-                        winArrayIndices.AddRange(tempArrayIndices); //add the winning symbol to the list of array (as return later)
-                        WinLineMatch(matchCounter, symbol, betAmount, playerId, gameId, playerId);
+                        winArrayDimensionList.AddRange(temporaryArrayDimensionList); //add the winning symbol to the list of array (as return later)
+                        CreditAndRecordWinningCombinations(matchCounter, symbol, betAmount, playerId, gameId, playerId);
                     }
                 }
             }
 
-            if (!winArrayIndices.Any() && !cascaded)
+            if (!winArrayDimensionList.Any() && !cascaded)
             {
                 _transactionHistory.AddTransactionHistory(betAmount, playerId, "Lose", gameId, 0, string.Empty);
             }
 
-            CheckBonus(slots, playerId);
+            CheckIfPlayerSpinHasFreeBonusSpin(slots, playerId);
 
             //If there's a winning symbol in slot
             //get the line(3) and wheel(5) (base on the array row and col)
             //remove the symbol in the array.
-            RemoveSymbolsInTheWheelArray(winArrayIndices);
+            RemoveSymbolsInTheWheelArray(winArrayDimensionList);
 
-            return winArrayIndices.Any();
+            return winArrayDimensionList.Any();
         }
 
-        public void WinLineMatch(int match, string symbol, decimal betAmount, int playerId, string gameId, int payLine)
+        public void CreditAndRecordWinningCombinations(int match, string symbol, decimal betAmount, int playerId, string gameId, int payLine)
         {
             var winAmount = _win.GetWin(symbol, match, betAmount); //compute the winning amount base on the number of match and symbol
 
@@ -165,15 +165,15 @@ namespace SlotAPI.Domains.Impl
             _statisticsDataStore.PayLineStat(payLine); //add payline stats
         }
 
-        public void CheckBonus(string[,] slots, int playerId)
+        public void CheckIfPlayerSpinHasFreeBonusSpin(string[,] slots, int playerId)
         {
             //check for bonuses
             var bonusCounter = 0;
-            for (var i = 0; i < 3; i++)
+            for (var line = 0; line < 3; line++)
             {
-                for (var j = 0; j < 5; j++)
+                for (var wheel = 0; wheel < 5; wheel++)
                 {
-                    var symbol = slots[i, j];
+                    var symbol = slots[line, wheel];
                     if (symbol == "Bonus")
                     {
                         bonusCounter += 1;
@@ -188,10 +188,10 @@ namespace SlotAPI.Domains.Impl
         {
             foreach (var item in winArrayIndices.Distinct())
             {
-                var values = item.Split(',');
+                var concatenatedSymbols = item.Split(',');
 
-                var row = Convert.ToInt32(values[0]);
-                var col = Convert.ToInt32(values[1]);
+                var row = Convert.ToInt32(concatenatedSymbols[0]);
+                var col = Convert.ToInt32(concatenatedSymbols[1]);
 
                 var index = _wheels.Wheel[col].Skip(row).First(); //get the index base on the row and col (array position)
 
@@ -201,7 +201,7 @@ namespace SlotAPI.Domains.Impl
 
         #region PrivateMethods
 
-        private byte RandomPick()
+        private byte GenerateRandomNumber()
         {
             using (var rng = new RNGCryptoServiceProvider())
             {
@@ -220,16 +220,16 @@ namespace SlotAPI.Domains.Impl
 
         private bool IsFairSpin(byte spin, byte numberOfSymbols)
         {
-            int fullSetsOfValues = Byte.MaxValue / numberOfSymbols;
+            var fullSetsOfValues = Byte.MaxValue / numberOfSymbols;
 
             return spin < numberOfSymbols * fullSetsOfValues;
         }
 
-        private void RngSpin()
+        private void WheelSpin()
         {
-            for (var i = 0; i < MaxReel; i++)
+            for (var i = 0; i < MaxWheelNumber; i++)
             {
-                var randomNumber = (int)RandomPick();
+                var randomNumber = (int)GenerateRandomNumber();
 
                 //rotate the array based on the roll
                 _wheels.Wheel[i] = _wheels.Wheel[i].Skip(randomNumber).Concat(_wheels.Wheel[i].Take(randomNumber))
@@ -239,10 +239,10 @@ namespace SlotAPI.Domains.Impl
 
         private string GetSymbol(string[,] slots, string lines, ref List<string> tempData)
         {
-            var values = lines.Split(',');
+            var concatenatedSymbols = lines.Split(',');
 
-            var row = Convert.ToInt32(values[0]); //get line
-            var col = Convert.ToInt32(values[1]); //get wheel
+            var row = Convert.ToInt32(concatenatedSymbols[0]); //get line
+            var col = Convert.ToInt32(concatenatedSymbols[1]); //get wheel
 
             var currentSymbol = slots[row, col];
 

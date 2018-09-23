@@ -74,10 +74,9 @@ namespace SlotAPI.Controllers
 
             var errorMessage = new BaseResponse();
 
-            var transaction = string.Empty;
             decimal balance = -1;
 
-            transaction = _transaction.GetLastTransactionHistoryByPlayer(spinRequest.PlayerId).Transaction;
+            var transaction = _transaction.GetLastTransactionHistoryByPlayer(spinRequest.PlayerId).Transaction;
             balance = _account.GetBalance(spinRequest.PlayerId);
             
             var response = new SpinResponse()

@@ -12,6 +12,6 @@ namespace SlotAPI.Domains
 
         List<Odds> GetOddsTable();
 
-        string[] PayLines(int win);
+        string[] GetWinningPayLine(int win);
     }
 }

@@ -39,7 +39,7 @@ namespace SlotAPI.Domains.Impl
             };
         }
 
-        public string[] PayLines(int win)
+        public string[] GetWinningPayLine(int win)
         {
             switch (win)
             {

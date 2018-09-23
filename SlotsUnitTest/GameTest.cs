@@ -23,7 +23,7 @@ namespace SlotsUnitTest
             var game = new Game(mockIReel.Object, mockITransactionHistoryDataStore.Object,
                 mockIAccountCreditsDataStore.Object, mockIStatisticDataStore.Object, mockIWin.Object);
 
-            mockIWin.Setup(m => m.PayLines(It.IsAny<int>()))
+            mockIWin.Setup(m => m.GetWinningPayLine(It.IsAny<int>()))
                 .Returns(() => new string[] { "1,0", "1,1", "1,2", "1,3", "1,4" });
 
             var slots = new string[3, 5];
@@ -34,7 +34,7 @@ namespace SlotsUnitTest
             slots[1, 3] = "S7";
             slots[1, 4] = "S7";
 
-            var result = game.CheckWin(slots, It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<decimal>(), It.IsAny<string>());
+            var result = game.CheckIfPlayerHasWinningCombinations(slots, It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<decimal>(), It.IsAny<string>());
 
             Assert.True(result);
         }
@@ -51,7 +51,7 @@ namespace SlotsUnitTest
             var game = new Game(mockIReel.Object, mockITransactionHistoryDataStore.Object,
                 mockIAccountCreditsDataStore.Object, mockIStatisticDataStore.Object, mockIWin.Object);
 
-            mockIWin.Setup(m => m.PayLines(It.IsAny<int>()))
+            mockIWin.Setup(m => m.GetWinningPayLine(It.IsAny<int>()))
                 .Returns(() => new string[] { "1,0", "1,1", "1,2", "1,3", "1,4" });
 
             var slots = new string[3, 5];
@@ -62,7 +62,7 @@ namespace SlotsUnitTest
             slots[1, 3] = "S3";
             slots[1, 4] = "S4";
 
-            var result = game.CheckWin(slots, It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<decimal>(), It.IsAny<string>());
+            var result = game.CheckIfPlayerHasWinningCombinations(slots, It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<decimal>(), It.IsAny<string>());
 
             Assert.True(!result);
         }
@@ -79,7 +79,7 @@ namespace SlotsUnitTest
             var game = new Game(mockIReel.Object, mockITransactionHistoryDataStore.Object,
                 mockIAccountCreditsDataStore.Object, mockIStatisticDataStore.Object, mockIWin.Object);
 
-            mockIWin.Setup(m => m.PayLines(It.IsAny<int>()))
+            mockIWin.Setup(m => m.GetWinningPayLine(It.IsAny<int>()))
                 .Returns(() => new string[] { "1,0", "1,1", "1,2", "1,3", "1,4" });
 
             var slots = new string[3, 5];
@@ -90,7 +90,7 @@ namespace SlotsUnitTest
             slots[1, 3] = "S7";
             slots[1, 4] = "S7";
 
-            var result = game.CheckWin(slots, It.IsAny<int>(), true, It.IsAny<decimal>(), It.IsAny<string>());
+            var result = game.CheckIfPlayerHasWinningCombinations(slots, It.IsAny<int>(), true, It.IsAny<decimal>(), It.IsAny<string>());
 
             Assert.True(result);
         }
@@ -120,7 +120,7 @@ namespace SlotsUnitTest
             slots[1, 3] = "S3";
             slots[1, 4] = "S4";
 
-            game.CheckBonus(slots, It.IsAny<int>());
+            game.CheckIfPlayerSpinHasFreeBonusSpin(slots, It.IsAny<int>());
 
             mockIAccountCreditsDataStore.VerifyAll();
         }
@@ -145,7 +145,7 @@ namespace SlotsUnitTest
             slots[1, 3] = "S3";
             slots[1, 4] = "S4";
 
-            game.CheckBonus(slots, It.IsAny<int>());
+            game.CheckIfPlayerSpinHasFreeBonusSpin(slots, It.IsAny<int>());
 
             mockIAccountCreditsDataStore.VerifyAll();
         }
@@ -245,7 +245,7 @@ namespace SlotsUnitTest
             mockIStatisticDataStore.Setup(m => m.PayLineStat(It.IsAny<int>()));
             mockIStatisticDataStore.Setup(m => m.SymbolStat(It.IsAny<string>(), It.IsAny<int>()));
 
-            game.WinLineMatch(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>());
+            game.CreditAndRecordWinningCombinations(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>());
 
             mockIAccountCreditsDataStore.VerifyAll();
         }
